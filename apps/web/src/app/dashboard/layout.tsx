@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/logo";
 import { requireUser } from "@/lib/auth";
 import { logout } from "../(auth)/actions";
 
@@ -8,7 +9,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <>
       <header className="border-b border-line">
         <div className="mx-auto flex h-16 max-w-5xl items-center gap-6 px-4 sm:px-6">
-          <Link href="/" className="font-display text-xl font-bold">DistroHub</Link>
+          <Link href="/" aria-label="Distrohub home"><Logo size={28} /></Link>
           <nav className="flex flex-1 gap-4 text-sm font-medium text-muted">
             <Link href="/dashboard" className="hover:text-ink">Apps</Link>
             <Link href="/dashboard/api-keys" className="hover:text-ink">API keys</Link>

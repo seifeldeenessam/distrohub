@@ -44,7 +44,7 @@ export default async function SuccessPage({ searchParams }: PageProps<"/purchase
         <div>
           <h1 className="text-3xl font-bold">{order.app.name} is downloading</h1>
           <p className="text-muted">
-            Didn&apos;t start? <a href={downloadHref} className="font-medium text-ledger-ink underline">Download it again</a>.
+            Didn&apos;t start? <a href={downloadHref} className="font-medium text-accent-ink underline">Download it again</a>.
           </p>
         </div>
       </div>

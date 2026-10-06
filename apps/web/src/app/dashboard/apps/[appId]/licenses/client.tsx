@@ -53,7 +53,7 @@ export function IssueLicenseForm({ appId }: { appId: string }) {
         <input type="checkbox" name="send" defaultChecked /> Email the key and download link
       </label>
       {state.error && <p role="alert" className="rounded-md bg-danger-wash p-2 text-sm text-danger">{state.error}</p>}
-      {state.ok && <p role="status" className="rounded-md bg-ledger-wash p-2 font-mono text-sm text-ledger-ink">{state.ok}</p>}
+      {state.ok && <p role="status" className="rounded-md bg-accent-wash p-2 font-mono text-sm text-accent-ink">{state.ok}</p>}
       <button className="btn btn-primary w-full" disabled={pending}>Issue key</button>
     </form>
   );

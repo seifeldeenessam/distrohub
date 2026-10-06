@@ -32,9 +32,9 @@ export default function DocsPage() {
       </nav>
 
       <article className="min-w-0 max-w-prose text-[0.9375rem] leading-relaxed">
-        <h1 className="text-4xl font-bold">Sell your app on DistroHub</h1>
+        <h1 className="text-4xl font-bold">Sell your app on Distrohub</h1>
         <p className="mt-4 text-lg text-muted">
-          You upload a build and add a license check to your app. DistroHub handles the store page, payment, the
+          You upload a build and add a license check to your app. Distrohub handles the store page, payment, the
           download and the license key email.
         </p>
         <p className="mt-4"><Link href="/register" className="btn btn-primary">Create a developer account</Link></p>
@@ -44,7 +44,7 @@ export default function DocsPage() {
           <li>A buyer clicks <strong>$5 Download</strong> on your app page and pays through Polar.</li>
           <li>The download starts, and a license key is emailed to the buyer.</li>
           <li>The buyer opens your app. Your paywall asks for the key and calls <code>/api/v1/licenses/activate</code>.</li>
-          <li>DistroHub returns a signed token. The app stores it and unlocks. It works offline until the token expires, then refreshes it quietly.</li>
+          <li>Distrohub returns a signed token. The app stores it and unlocks. It works offline until the token expires, then refreshes it quietly.</li>
         </ol>
 
         <H2 id="swift">Swift package (macOS)</H2>

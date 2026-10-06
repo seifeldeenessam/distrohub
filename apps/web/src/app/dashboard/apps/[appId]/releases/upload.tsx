@@ -70,7 +70,7 @@ export function UploadRelease({ appId }: { appId: string }) {
       {uploading && (
         <div aria-live="polite">
           <div className="h-2 overflow-hidden rounded-full bg-line">
-            <div className="h-full bg-ledger transition-[width]" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-brand transition-[width]" style={{ width: `${progress}%` }} />
           </div>
           <p className="hint">Uploading, {progress}%</p>
         </div>

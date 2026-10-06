@@ -62,13 +62,13 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
             <Link href={`/apps/${app.slug}`} className="group flex items-center gap-4 py-5 sm:gap-6">
               <AppIcon name={app.name} iconUrl={app.iconUrl} size={64} />
               <div className="min-w-0 flex-1">
-                <h2 className="truncate text-lg font-semibold group-hover:text-ledger-ink">{app.name}</h2>
+                <h2 className="truncate text-lg font-semibold group-hover:text-accent-ink">{app.name}</h2>
                 <p className="truncate text-muted">{app.tagline}</p>
                 <p className="mt-1 text-sm text-muted">
                   {PLATFORM_LABEL[app.platform]}, by {app.owner.name}
                 </p>
               </div>
-              <span className="rounded-full bg-ledger-wash px-3 py-1 text-sm font-semibold text-ledger-ink">
+              <span className="rounded-full bg-accent-wash px-3 py-1 text-sm font-semibold text-accent-ink">
                 {formatPrice(app.priceCents, app.currency)}
               </span>
             </Link>

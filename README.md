@@ -1,4 +1,4 @@
-# DistroHub
+# Distrohub
 
 A store for paid desktop apps. Developers upload a build, set a price and add a license check to their app. Buyers click **$5 Download**, pay through Polar, the download starts, and a license key arrives by email. They paste the key into the app and it unlocks.
 
@@ -10,7 +10,7 @@ sdks/swift      DistroHubKit: Swift package with the license manager and a drop-
 ## Flow
 
 ```
-Buyer                       DistroHub (apps/web)                         Polar / R2 / Resend
+Buyer                       Distrohub (apps/web)                         Polar / R2 / Resend
   │ click "$5 Download"  ──► POST /api/checkout
   │                          creates Order(PENDING), Polar product+checkout ──► hosted checkout
   │ ◄───────────────────────────────────────────────────────────────── pays, redirected to

@@ -22,7 +22,7 @@ export function Tabs({ base }: { base: string }) {
             key={tab.label}
             href={href}
             aria-current={active ? "page" : undefined}
-            className={`-mb-px border-b-2 pb-3 ${active ? "border-ledger text-ink" : "border-transparent text-muted hover:text-ink"}`}
+            className={`-mb-px border-b-2 pb-3 ${active ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"}`}
           >
             {tab.label}
           </Link>

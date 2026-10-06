@@ -41,7 +41,7 @@ export default async function MockCheckoutPage({ params }: PageProps<"/checkout/
 
   return (
     <div className="mx-auto max-w-sm pt-16">
-      <p className="mb-4 rounded-md bg-ledger-wash p-3 text-sm text-ledger-ink">
+      <p className="mb-4 rounded-md bg-accent-wash p-3 text-sm text-accent-ink">
         Test checkout. No card is charged. Set PAYMENTS_PROVIDER=polar to use Polar.
       </p>
       <div className="panel p-6">

@@ -46,7 +46,7 @@ export function AppForm({
       <Field label="Icon URL" name="iconUrl" type="url" defaultValue={app?.iconUrl ?? ""} hint="Square PNG, 512×512 or larger. Optional." />
       <Field label="Website" name="websiteUrl" type="url" defaultValue={app?.websiteUrl ?? ""} hint="Optional." />
       {state.error && <p role="alert" className="rounded-md bg-danger-wash p-2 text-sm text-danger">{state.error}</p>}
-      {state.ok && <p role="status" className="rounded-md bg-ledger-wash p-2 text-sm text-ledger-ink">{state.ok}</p>}
+      {state.ok && <p role="status" className="rounded-md bg-accent-wash p-2 text-sm text-accent-ink">{state.ok}</p>}
       <button className="btn btn-primary" disabled={pending}>{submitLabel}</button>
     </form>
   );

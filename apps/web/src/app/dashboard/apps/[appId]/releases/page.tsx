@@ -21,7 +21,7 @@ export default async function ReleasesPage({ params }: PageProps<"/dashboard/app
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">
                     {r.version}
-                    {i === 0 && <span className="ml-2 rounded-full bg-ledger-wash px-2 py-0.5 text-xs font-semibold text-ledger-ink">Latest</span>}
+                    {i === 0 && <span className="ml-2 rounded-full bg-accent-wash px-2 py-0.5 text-xs font-semibold text-accent-ink">Latest</span>}
                   </p>
                   <p className="truncate text-sm text-muted">
                     {r.fileName}, {(r.fileSize / 1024 ** 2).toFixed(1)} MB, {r.createdAt.toLocaleDateString("en-US", { dateStyle: "medium" })}

@@ -13,8 +13,8 @@ export function CreateKeyForm() {
         <button className="btn btn-primary shrink-0" disabled={pending}>Create key</button>
       </form>
       {state.key && (
-        <div className="mt-4 rounded-lg border border-ledger bg-ledger-wash p-4">
-          <p className="text-sm font-semibold text-ledger-ink">Copy this key now. It won&apos;t be shown again.</p>
+        <div className="mt-4 rounded-lg border border-accent bg-accent-wash p-4">
+          <p className="text-sm font-semibold text-accent-ink">Copy this key now. It won&apos;t be shown again.</p>
           <div className="mt-2 flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate font-mono text-sm">{state.key}</code>
             <CopyButton value={state.key} />
