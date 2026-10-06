@@ -51,6 +51,7 @@ async function ensurePolarProduct(app: App) {
 export const polarProvider: PaymentsProvider = {
   name: "polar",
   async createCheckout({ app, customerEmail }) {
+    if (app.priceCents === 0) throw new Error("Free products don't go through Polar checkout");
     const productId = await ensurePolarProduct(app);
     const checkout = await polar().checkouts.create({
       products: [productId],

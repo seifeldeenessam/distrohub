@@ -10,10 +10,10 @@ export default async function ReleasesPage({ params }: PageProps<"/dashboard/app
   return (
     <div className="grid gap-12 md:grid-cols-[1fr_320px]">
       <section>
-        <h2 className="text-xl font-semibold">Releases</h2>
-        <p className="mt-1 text-muted">Buyers always download the newest release, including from old receipt emails.</p>
+        <h2 className="text-xl font-semibold">Files</h2>
+        <p className="mt-1 text-muted">Buyers always download the newest version, including from old receipt emails.</p>
         {releases.length === 0 ? (
-          <p className="panel mt-6 p-6 text-muted">No releases yet. Upload your first build to publish the app.</p>
+          <p className="panel mt-6 p-6 text-muted">Nothing uploaded yet. Upload the file buyers get, then publish.</p>
         ) : (
           <ul className="mt-6 border-t border-line">
             {releases.map((r, i) => (
@@ -35,7 +35,7 @@ export default async function ReleasesPage({ params }: PageProps<"/dashboard/app
         )}
       </section>
       <section>
-        <h2 className="text-xl font-semibold">Upload a build</h2>
+        <h2 className="text-xl font-semibold">Upload a version</h2>
         <UploadRelease appId={appId} />
       </section>
     </div>

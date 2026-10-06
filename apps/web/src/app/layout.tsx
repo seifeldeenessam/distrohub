@@ -9,7 +9,7 @@ const jetbrains = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrai
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: { default: "Distrohub", template: "%s · Distrohub" },
-  description: "Buy apps from independent developers. Pay once, get a license key, keep the app.",
+  description: "Apps, ebooks, templates and more from independent creators. Free or pay once, and keep the download.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -55,15 +55,15 @@ export function UploadRelease({ appId }: { appId: string }) {
     <form ref={formRef} onSubmit={onSubmit} className="mt-4 space-y-4">
       <div>
         <label htmlFor="version" className="label">Version</label>
-        <input id="version" name="version" required placeholder="1.0.0" className="input" />
+        <input id="version" name="version" required placeholder="1.0" className="input" />
       </div>
       <div>
         <label htmlFor="file" className="label">File</label>
         <input id="file" name="file" type="file" required className="input" />
-        <p className="hint">.dmg, .zip, .pkg, .exe, .msi or .AppImage, up to 2 GB.</p>
+        <p className="hint">Any file type, up to 2 GB. Zip several files together.</p>
       </div>
       <div>
-        <label htmlFor="notes" className="label">Release notes</label>
+        <label htmlFor="notes" className="label">What&apos;s new</label>
         <textarea id="notes" name="notes" rows={3} className="input" />
       </div>
       {error && <p role="alert" className="rounded-md bg-danger-wash p-2 text-sm text-danger">{error}</p>}
@@ -75,7 +75,7 @@ export function UploadRelease({ appId }: { appId: string }) {
           <p className="hint">Uploading, {progress}%</p>
         </div>
       )}
-      <button className="btn btn-primary w-full" disabled={uploading}>Upload release</button>
+      <button className="btn btn-primary w-full" disabled={uploading}>Upload file</button>
     </form>
   );
 }
@@ -86,7 +86,7 @@ export function DeleteReleaseButton({ appId, releaseId }: { appId: string; relea
     <button
       className="btn btn-sm btn-danger"
       disabled={pending}
-      onClick={() => confirm("Delete this release? Buyers will get the previous one.") && start(() => deleteRelease(appId, releaseId))}
+      onClick={() => confirm("Delete this version? Buyers will get the previous one.") && start(() => deleteRelease(appId, releaseId))}
     >
       Delete
     </button>

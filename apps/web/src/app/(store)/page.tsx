@@ -1,58 +1,69 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { formatPrice } from "@/lib/money";
+import { priceLabel } from "@/lib/money";
 import { AppIcon } from "@/components/app-icon";
 import { PLATFORM_LABEL } from "@/components/platform";
-import type { Platform, Prisma } from "@/generated/prisma/client";
+import { KIND_LABEL, PRODUCT_KINDS } from "@/components/product-kind";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
-
-const PLATFORMS: Platform[] = ["MACOS", "WINDOWS", "LINUX"];
 
 export default async function ExplorePage({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
-  const platform = PLATFORMS.find((p) => p === sp.platform);
+  const kind = PRODUCT_KINDS.find((k) => k === sp.type);
+  const free = sp.price === "free";
 
+  const listed: Prisma.AppWhereInput = { status: "PUBLISHED", releases: { some: { uploaded: true } } };
   const where: Prisma.AppWhereInput = {
-    status: "PUBLISHED",
-    releases: { some: { uploaded: true } },
-    ...(platform ? { platform } : {}),
+    ...listed,
+    ...(kind ? { kind } : {}),
+    ...(free ? { priceCents: 0 } : {}),
     ...(q
       ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { tagline: { contains: q, mode: "insensitive" } }] }
       : {}),
   };
-  const apps = await db.app.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    take: 60,
-    include: { owner: { select: { name: true } } },
-  });
+  const [apps, kinds] = await Promise.all([
+    db.app.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 60,
+      include: { owner: { select: { name: true } } },
+    }),
+    // Only offer filters for types that have something listed.
+    db.app.groupBy({ by: ["kind"], where: listed }),
+  ]);
+  const kindFilters = PRODUCT_KINDS.filter((k) => kinds.some((g) => g.kind === k));
+  const filtered = !!(q || kind || free);
 
   return (
     <>
       <section className="pt-16 pb-10 sm:pt-24">
         <h1 className="max-w-2xl text-4xl font-bold leading-[1.05] sm:text-6xl">
-          Apps you pay for once and keep.
+          Digital goods you pay for once and keep.
         </h1>
         <p className="mt-5 max-w-xl text-lg text-muted">
-          Made by independent developers. Buy, download, paste the license key from your inbox, done.
+          Apps, ebooks, templates and more from independent creators. Free or paid, the download is yours.
         </p>
       </section>
 
       <form className="flex flex-col gap-3 sm:flex-row sm:items-center" role="search">
+        {kind && <input type="hidden" name="type" value={kind} />}
+        {free && <input type="hidden" name="price" value="free" />}
         <input
           name="q"
           defaultValue={q}
-          placeholder="Search apps"
-          aria-label="Search apps"
+          placeholder="Search"
+          aria-label="Search products"
           className="input sm:max-w-xs"
         />
-        <div className="flex gap-1 text-sm">
-          <FilterLink q={q} active={!platform} label="All" />
-          {PLATFORMS.map((p) => (
-            <FilterLink key={p} q={q} platform={p} active={platform === p} label={PLATFORM_LABEL[p]} />
-          ))}
+        <div className="flex flex-wrap gap-1 text-sm">
+          <FilterLink q={q} free={free} active={!kind} label="All" />
+          {kindFilters.length > 1 &&
+            kindFilters.map((k) => (
+              <FilterLink key={k} q={q} type={k} free={free} active={kind === k} label={KIND_LABEL[k].many} />
+            ))}
+          <FilterLink q={q} type={kind} free={!free} active={free} label="Free" />
         </div>
       </form>
 
@@ -65,11 +76,12 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
                 <h2 className="truncate text-lg font-semibold group-hover:text-accent-ink">{app.name}</h2>
                 <p className="truncate text-muted">{app.tagline}</p>
                 <p className="mt-1 text-sm text-muted">
-                  {PLATFORM_LABEL[app.platform]}, by {app.owner.name}
+                  {app.platform ? `${KIND_LABEL[app.kind].one} for ${PLATFORM_LABEL[app.platform]}` : KIND_LABEL[app.kind].one}, by{" "}
+                  {app.owner.name}
                 </p>
               </div>
               <span className="rounded-full bg-accent-wash px-3 py-1 text-sm font-semibold text-accent-ink">
-                {formatPrice(app.priceCents, app.currency)}
+                {priceLabel(app.priceCents, app.currency)}
               </span>
             </Link>
           </li>
@@ -78,12 +90,12 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
 
       {apps.length === 0 && (
         <div className="py-16 text-center">
-          <p className="text-lg font-semibold">{q || platform ? "No apps match that search." : "No apps are listed yet."}</p>
+          <p className="text-lg font-semibold">{filtered ? "Nothing matches that search." : "Nothing is listed yet."}</p>
           <p className="mt-2 text-muted">
-            {q || platform ? (
+            {filtered ? (
               <Link href="/" className="underline">Clear the filters</Link>
             ) : (
-              <>Building one? <Link href="/register" className="underline">List your app</Link>.</>
+              <>Making something? <Link href="/register" className="underline">Start selling</Link>.</>
             )}
           </p>
         </div>
@@ -92,10 +104,12 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
   );
 }
 
-function FilterLink({ q, platform, active, label }: { q: string; platform?: string; active: boolean; label: string }) {
+function FilterLink(props: { q: string; type?: string; free: boolean; active: boolean; label: string }) {
+  const { q, type, free, active, label } = props;
   const params = new URLSearchParams();
   if (q) params.set("q", q);
-  if (platform) params.set("platform", platform);
+  if (type) params.set("type", type);
+  if (free) params.set("price", "free");
   return (
     <Link
       href={`/?${params}`}

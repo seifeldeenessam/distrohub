@@ -5,16 +5,16 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "", label: "Overview" },
-  { href: "/releases", label: "Releases" },
+  { href: "/releases", label: "Files" },
   { href: "/licenses", label: "Licenses" },
   { href: "/settings", label: "Settings" },
 ];
 
-export function Tabs({ base }: { base: string }) {
+export function Tabs({ base, licenses }: { base: string; licenses: boolean }) {
   const pathname = usePathname();
   return (
     <nav className="mt-8 flex gap-6 overflow-x-auto border-b border-line text-sm font-medium">
-      {TABS.map((tab) => {
+      {TABS.filter((tab) => licenses || tab.href !== "/licenses" || pathname === base + tab.href).map((tab) => {
         const href = base + tab.href;
         const active = pathname === href;
         return (

@@ -8,7 +8,7 @@ import { isUniqueViolation } from "./fulfillment";
 export const MAX_RELEASE_BYTES = 2 * 1024 ** 3; // 2 GiB
 
 export const releaseInput = z.object({
-  version: z.string().trim().min(1).max(32).regex(/^[0-9A-Za-z.+-]+$/, "Use characters like 1.2.0 or 2.0.0-beta.1"),
+  version: z.string().trim().min(1).max(32).regex(/^[0-9A-Za-z.+-]+$/, "Use letters, numbers, dots and dashes, like 1.2.0 or 2nd-edition"),
   fileName: z.string().trim().min(1).max(200),
   fileSize: z.number().int().positive().max(MAX_RELEASE_BYTES),
   notes: z.string().max(5000).optional().default(""),

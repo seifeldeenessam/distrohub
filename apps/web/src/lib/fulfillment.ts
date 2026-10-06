@@ -3,7 +3,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { env } from "./env";
 import { generateLicenseKey } from "./crypto";
-import { licenseEmail, sendEmail } from "./email";
+import { orderEmail, sendEmail } from "./email";
 
 export function downloadUrl(downloadToken: string) {
   return `${env.appUrl}/d/${downloadToken}`;
@@ -12,7 +12,8 @@ export function downloadUrl(downloadToken: string) {
 export class OrderNotFoundError extends Error {}
 
 /**
- * Marks an order paid, issues its license and emails the key + download link.
+ * Marks an order paid, issues its license (when the product uses keys) and emails the download link.
+ * Free orders come through here too, with amountCents 0.
  * Idempotent: webhook retries for an already-paid order are no-ops.
  */
 export async function fulfillOrder(input: {
@@ -44,22 +45,36 @@ export async function fulfillOrder(input: {
         developerEarningsCents: input.amountCents - platformFeeCents,
       },
     });
-    const license = await tx.license.create({
-      data: {
-        key: generateLicenseKey(),
-        appId: order.appId,
-        orderId: order.id,
-        email: input.email,
-        maxActivations: order.app.maxActivations,
-      },
-    });
-    return { order, license };
+    if (order.app.licenseKeys) {
+      await tx.license.create({
+        data: {
+          key: generateLicenseKey(),
+          appId: order.appId,
+          orderId: order.id,
+          email: input.email,
+          maxActivations: order.app.maxActivations,
+        },
+      });
+    }
+    return order;
   });
 
   if (!result) return;
-  await sendLicenseEmail(result.license.id).catch((err) =>
-    console.error(`[fulfillment] license email failed for order ${result.order.id}`, err),
+  await sendOrderEmail(result.id).catch((err) =>
+    console.error(`[fulfillment] receipt email failed for order ${result.id}`, err),
   );
+}
+
+async function sendOrderEmail(orderId: string) {
+  const order = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { app: true, license: true } });
+  if (!order.email) return;
+  const mail = orderEmail({
+    productName: order.app.name,
+    downloadUrl: downloadUrl(order.downloadToken),
+    free: order.amountCents === 0,
+    license: order.license,
+  });
+  await sendEmail({ to: order.email, ...mail });
 }
 
 export async function sendLicenseEmail(licenseId: string) {
@@ -67,11 +82,11 @@ export async function sendLicenseEmail(licenseId: string) {
     where: { id: licenseId },
     include: { app: true, order: true },
   });
-  const mail = licenseEmail({
-    appName: license.app.name,
-    licenseKey: license.key,
+  const mail = orderEmail({
+    productName: license.app.name,
     downloadUrl: license.order ? downloadUrl(license.order.downloadToken) : `${env.appUrl}/apps/${license.app.slug}`,
-    maxActivations: license.maxActivations,
+    free: !license.order || license.order.amountCents === 0,
+    license,
   });
   await sendEmail({ to: license.email, ...mail });
 }

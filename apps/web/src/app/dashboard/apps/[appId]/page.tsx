@@ -33,22 +33,22 @@ let license = LicenseManager(
       <section className="flex flex-wrap items-center justify-between gap-4">
         <p className="max-w-md text-muted">
           {app.status === "PUBLISHED"
-            ? "Buyers can find and purchase this app in the store."
+            ? `Buyers can find and ${app.priceCents === 0 ? "download" : "buy"} this product in the store.`
             : release
-              ? "Ready to go. Publishing lists the app in the store."
-              : "Upload a release, then publish to list the app in the store."}
+              ? "Ready to go. Publishing lists the product in the store."
+              : "Upload a file, then publish to list the product in the store."}
         </p>
         <PublishToggle appId={app.id} published={app.status === "PUBLISHED"} canPublish={!!release} />
       </section>
 
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
-        <Stat label="Sales" value={String(sales._count)} />
+        <Stat label="Orders" value={String(sales._count)} />
         <Stat label="Gross revenue" value={formatPrice(sales._sum.amountCents ?? 0)} />
         <Stat label="Your earnings" value={formatPrice(sales._sum.developerEarningsCents ?? 0)} />
-        <Stat label="Active devices" value={`${activations} on ${licenses} keys`} />
+        <Stat label="Active devices" value={app.licenseKeys ? `${activations} on ${licenses} keys` : "No keys"} />
       </dl>
 
-      <section>
+      {app.licenseKeys && <section>
         <h2 className="text-xl font-semibold">Add the paywall to your app</h2>
         <p className="mt-1 max-w-prose text-muted">
           These two values identify the app and let it verify license tokens offline. Both are safe to ship inside
@@ -68,7 +68,7 @@ let license = LicenseManager(
         <p className="mt-3 text-sm text-muted">
           Not on Swift? Call the <a href="/docs#license-api" className="underline">license REST API</a> directly.
         </p>
-      </section>
+      </section>}
     </div>
   );
 }

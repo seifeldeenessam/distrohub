@@ -12,10 +12,12 @@
 
 ## Project
 
-Distrohub is a store for paid desktop apps:
-- **Developers** upload builds, set a price and add a license check to their app.
-- **Buyers** click "$X Download" and pay through Polar. The download starts, and a license key is emailed to them.
-- **The app** activates the key against the license API and unlocks.
+Distrohub is a store for any digital product (software, ebooks, courses, templates, fonts, audio…), free or paid:
+- **Developers** upload a file, set a price from $0 and pick a product type. Software can turn on license keys and add a license check to the app.
+- **Buyers** click "$X Download" and pay through Polar, or "Download free" and enter an email. The download starts, and the download link (plus a license key, when the product uses keys) is emailed to them.
+- **The app** (license-key products only) activates the key against the license API and unlocks.
+
+Products are the `App` model internally (`appId`, `/apps/[slug]`, `/api/v1/apps` are stable public names); UI copy says "product".
 
 ```
 apps/web     Next.js 16 app: storefront, developer dashboard, REST API (Prisma 7 + PostgreSQL)
@@ -79,11 +81,13 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
 - `app/(auth)` has login and register; `app/dashboard` is the developer console. Mutations go through server actions in `dashboard/actions.ts`, and each action re-checks ownership.
 - `app/api/v1/licenses/{activate,validate,deactivate}` is the **public** API called by shipped apps. It takes no secret, so it is rate limited per IP.
 - `app/api/v1/apps/**` and `app/api/v1/licenses/[licenseId]` form the **developer** API (secret key).
-- `app/api/checkout` creates a PENDING order and redirects to checkout. `app/api/webhooks/polar` handles `order.paid` and `order.refunded`. `app/d/[token]` is the permanent download link and always serves the latest uploaded release.
+- `app/api/checkout` creates a PENDING order and redirects to checkout. For a $0 product it skips the payments provider and calls `fulfillOrder()` straight away (provider `free`). `app/api/webhooks/polar` handles `order.paid` and `order.refunded`. `app/d/[token]` is the permanent download link and always serves the latest uploaded release.
 
 ## Invariants — don't break these
 
-- **Money is integer cents** (`priceCents`, `amountCents`). Format it with `formatPrice()` from `lib/money.ts`.
+- **Money is integer cents** (`priceCents`, `amountCents`). Format it with `formatPrice()` from `lib/money.ts` (`priceLabel()` shows "Free" for 0).
+- **Prices are 0 (free) or at least `MIN_PAID_PRICE_CENTS`** (Polar's $0.50 minimum). Free products never reach Polar, but their orders still go through `fulfillOrder()` so downloads, keys and receipts work the same way.
+- **License keys are per product** (`App.licenseKeys`). `fulfillOrder()` issues one only when it is on; an order without a license is valid. `platform` is set only for `kind = SOFTWARE`.
 - **License token format is a contract with `sdks/swift`**: `base64url(JSON payload) + "." + base64url(Ed25519 signature over the payload bytes)`, with payload `{ v, lid, app, dev, email, iat, exp }`. Each app's public key is the raw 32 bytes in **standard** base64, which is what CryptoKit expects. If you change this, update `sdks/swift/Sources/DistroHubKit/LicenseToken.swift` and the `/docs` page in the same commit.
 - **Public license API request fields** (`appId`, `licenseKey`, `deviceId`, `deviceName`) and error `code`s are also used by the Swift SDK and by developers' own apps. Treat them as a stable public API.
 - **Secrets are never stored raw**:
@@ -118,5 +122,6 @@ The rate limiter is in-memory (one instance only).
 ## Known gaps
 
 - **Developer payouts are manual.** Polar has no split payouts; per-order developer earnings are tracked after `PLATFORM_FEE_BPS`.
-- **No buyer accounts**, no free apps, no discounts, single currency (USD).
+- **No buyer accounts**, no pay-what-you-want, no discounts, single currency (USD).
+- **Free claims aren't email-verified**: anyone can claim a $0 product (and its license key) with any address, rate limited per IP.
 - **The Swift SDK has never been compiled in CI**; build it in Xcode after changing it.

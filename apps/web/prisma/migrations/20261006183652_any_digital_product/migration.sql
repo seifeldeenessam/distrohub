@@ -1,0 +1,8 @@
+-- CreateEnum
+CREATE TYPE "ProductKind" AS ENUM ('SOFTWARE', 'EBOOK', 'COURSE', 'TEMPLATE', 'GRAPHICS', 'AUDIO', 'VIDEO', 'FONT', 'OTHER');
+
+-- AlterTable
+ALTER TABLE "App" ADD COLUMN     "kind" "ProductKind" NOT NULL DEFAULT 'SOFTWARE',
+ADD COLUMN     "licenseKeys" BOOLEAN NOT NULL DEFAULT true,
+ALTER COLUMN "platform" DROP NOT NULL,
+ALTER COLUMN "platform" DROP DEFAULT;

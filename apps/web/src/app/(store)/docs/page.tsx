@@ -23,6 +23,7 @@ export default function DocsPage() {
       <nav className="hidden text-sm md:block">
         <ul className="sticky top-8 space-y-2 text-muted">
           <li><a href="#flow" className="hover:text-ink">How a sale works</a></li>
+          <li><a href="#pricing" className="hover:text-ink">Pricing and free</a></li>
           <li><a href="#swift" className="hover:text-ink">Swift package</a></li>
           <li><a href="#license-api" className="hover:text-ink">License API</a></li>
           <li><a href="#tokens" className="hover:text-ink">Offline tokens</a></li>
@@ -32,10 +33,11 @@ export default function DocsPage() {
       </nav>
 
       <article className="min-w-0 max-w-prose text-[0.9375rem] leading-relaxed">
-        <h1 className="text-4xl font-bold">Sell your app on Distrohub</h1>
+        <h1 className="text-4xl font-bold">Sell on Distrohub</h1>
         <p className="mt-4 text-lg text-muted">
-          You upload a build and add a license check to your app. Distrohub handles the store page, payment, the
-          download and the license key email.
+          Sell any digital product: apps, ebooks, courses, templates, fonts, audio. You upload the file and set a price,
+          or make it free. Distrohub handles the store page, payment, the download and the receipt email. Selling
+          software? Turn on license keys and add the license check to your app.
         </p>
         <p className="mt-4"><Link href="/register" className="btn btn-primary">Create a developer account</Link></p>
 
@@ -46,8 +48,22 @@ export default function DocsPage() {
           <li>The buyer opens your app. Your paywall asks for the key and calls <code>/api/v1/licenses/activate</code>.</li>
           <li>Distrohub returns a signed token. The app stores it and unlocks. It works offline until the token expires, then refreshes it quietly.</li>
         </ol>
+        <p className="mt-4">
+          Without license keys (the default for anything that isn&apos;t software), steps 3 and 4 don&apos;t apply: the buyer
+          gets the download and an email with a permanent link to the newest version.
+        </p>
 
-        <H2 id="swift">Swift package (macOS)</H2>
+        <H2 id="pricing">Pricing and free products</H2>
+        <ul className="mt-4 list-disc space-y-2 pl-5">
+          <li>Set any price from <strong>$0</strong>. Paid prices start at $0.50, the lowest amount Polar can charge.</li>
+          <li>
+            At $0 the button reads <strong>Download free</strong>. The buyer enters an email and gets the download
+            right away, with no checkout. If license keys are on, they get a key too, and it works exactly like a paid one.
+          </li>
+          <li>You can change the price at any time. Existing buyers keep their downloads and keys.</li>
+        </ul>
+
+        <H2 id="swift">Swift package (macOS software)</H2>
         <p className="mt-4">
           Add <code>DistroHubKit</code> from <code>sdks/swift</code> with Swift Package Manager. Copy your App ID and public key from
           the app&apos;s Overview tab in the dashboard.

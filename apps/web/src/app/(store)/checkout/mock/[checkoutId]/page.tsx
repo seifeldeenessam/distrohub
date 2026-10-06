@@ -49,7 +49,9 @@ export default async function MockCheckoutPage({ params }: PageProps<"/checkout/
         <p className="mt-1 text-3xl font-semibold">{formatPrice(order.amountCents, order.currency)}</p>
         <form action={pay} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="email" className="label">Email for your license key</label>
+            <label htmlFor="email" className="label">
+              {order.app.licenseKeys ? "Email for your license key" : "Email for your download link"}
+            </label>
             <input id="email" name="email" type="email" required className="input" placeholder="you@example.com" />
           </div>
           <button className="btn btn-primary w-full">Pay {formatPrice(order.amountCents, order.currency)}</button>

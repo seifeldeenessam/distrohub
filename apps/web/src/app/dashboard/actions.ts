@@ -9,17 +9,28 @@ import { generateApiKey } from "@/lib/api-auth";
 import { generateLicenseKey, generateSigningKeyPair, randomToken } from "@/lib/crypto";
 import { sendLicenseEmail } from "@/lib/fulfillment";
 import { completeRelease, createRelease, latestRelease, releaseInput } from "@/lib/releases";
+import { formatPrice, MIN_PAID_PRICE_CENTS } from "@/lib/money";
 import { slugify } from "@/lib/slug";
+import { PRODUCT_KINDS } from "@/components/product-kind";
 
 export type FormState = { error?: string; ok?: string };
 
 const appFields = z.object({
-  name: z.string().trim().min(1, "Give your app a name.").max(60),
+  name: z.string().trim().min(1, "Give your product a name.").max(60),
   tagline: z.string().trim().min(1, "Add a one-line tagline.").max(120),
-  description: z.string().trim().min(1, "Describe what the app does.").max(10_000),
-  price: z.coerce.number().min(0.5, "The minimum price is $0.50.").max(10_000),
-  platform: z.enum(["MACOS", "WINDOWS", "LINUX"]),
-  maxActivations: z.coerce.number().int().min(1).max(100),
+  description: z.string().trim().min(1, "Describe what buyers get.").max(10_000),
+  kind: z.enum(PRODUCT_KINDS),
+  price: z.coerce
+    .number("Enter a price, or 0 to make it free.")
+    .min(0, "Prices can't be negative. Enter 0 to make it free.")
+    .max(10_000, "The maximum price is $10,000.")
+    .refine(
+      (p) => p === 0 || Math.round(p * 100) >= MIN_PAID_PRICE_CENTS,
+      `Paid prices start at ${formatPrice(MIN_PAID_PRICE_CENTS)}. Enter 0 to make it free.`,
+    ),
+  platform: z.enum(["MACOS", "WINDOWS", "LINUX"]).optional(),
+  licenseKeys: z.literal("on").optional(),
+  maxActivations: z.coerce.number().int().min(1).max(100).optional(),
   iconUrl: z.union([z.url(), z.literal("")]).optional(),
   websiteUrl: z.union([z.url(), z.literal("")]).optional(),
 });
@@ -27,14 +38,23 @@ const appFields = z.object({
 function parseApp(formData: FormData) {
   const parsed = appFields.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0].message } as const;
-  const { price, iconUrl, websiteUrl, ...rest } = parsed.data;
+  const { price, iconUrl, websiteUrl, platform, licenseKeys, maxActivations, ...rest } = parsed.data;
+  if (rest.kind === "SOFTWARE" && !platform) return { error: "Choose the platform the software runs on." } as const;
   return {
-    data: { ...rest, priceCents: Math.round(price * 100), iconUrl: iconUrl || null, websiteUrl: websiteUrl || null },
+    data: {
+      ...rest,
+      priceCents: Math.round(price * 100),
+      platform: rest.kind === "SOFTWARE" ? platform! : null,
+      licenseKeys: licenseKeys === "on",
+      ...(maxActivations ? { maxActivations } : {}),
+      iconUrl: iconUrl || null,
+      websiteUrl: websiteUrl || null,
+    },
   } as const;
 }
 
 async function uniqueSlug(name: string) {
-  const base = slugify(name) || "app";
+  const base = slugify(name) || "product";
   for (let i = 0; i < 5; i++) {
     const slug = i === 0 ? base : `${base}-${randomToken(3).toLowerCase().replace(/[^a-z0-9]/g, "")}`;
     if (!(await db.app.findUnique({ where: { slug } }))) return slug;
@@ -70,7 +90,7 @@ export async function updateApp(appId: string, _prev: FormState, formData: FormD
 
 export async function setPublished(appId: string, publish: boolean): Promise<FormState> {
   await requireOwnedApp(appId);
-  if (publish && !(await latestRelease(appId))) return { error: "Upload a release before publishing." };
+  if (publish && !(await latestRelease(appId))) return { error: "Upload a file before publishing." };
   await db.app.update({ where: { id: appId }, data: { status: publish ? "PUBLISHED" : "DRAFT" } });
   revalidatePath(`/dashboard/apps/${appId}`, "layout");
   return { ok: publish ? "Published." : "Unpublished." };

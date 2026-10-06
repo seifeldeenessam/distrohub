@@ -26,7 +26,7 @@ export default async function LicensesPage({ params, searchParams }: PageProps<"
         </form>
         {licenses.length === 0 ? (
           <p className="panel mt-6 p-6 text-muted">
-            {query ? "No licenses match that search." : "Licenses appear here as soon as someone buys the app."}
+            {query ? "No licenses match that search." : "Licenses appear here as soon as someone gets the product."}
           </p>
         ) : (
           <ul className="mt-6 border-t border-line">

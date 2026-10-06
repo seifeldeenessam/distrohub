@@ -21,7 +21,7 @@ export default async function AppLayout({ children, params }: LayoutProps<"/dash
           </p>
         </div>
       </div>
-      <Tabs base={`/dashboard/apps/${app.id}`} />
+      <Tabs base={`/dashboard/apps/${app.id}`} licenses={app.licenseKeys} />
       <div className="pt-8">{children}</div>
     </>
   );

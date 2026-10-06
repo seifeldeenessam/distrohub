@@ -54,39 +54,59 @@ enum Platform {
   LINUX
 }
 
+/// What a product is. Drives store filters and copy; only SOFTWARE has a platform.
+enum ProductKind {
+  SOFTWARE
+  EBOOK
+  COURSE
+  TEMPLATE
+  GRAPHICS
+  AUDIO
+  VIDEO
+  FONT
+  OTHER
+}
+
 enum AppStatus {
   DRAFT
   PUBLISHED
 }
 
+/// A product for sale: software, an ebook, a template, anything delivered as a file.
+/// (Named App for historical reasons; `appId` is part of the public license API.)
 model App {
-  id                  String    @id @default(cuid())
-  ownerId             String
-  owner               User      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  slug                String    @unique
-  name                String
-  tagline             String
-  description         String
-  iconUrl             String?
-  websiteUrl          String?
-  platform            Platform  @default(MACOS)
-  priceCents          Int
-  currency            String    @default("usd")
-  status              AppStatus @default(DRAFT)
+  id                   String      @id @default(cuid())
+  ownerId              String
+  owner                User        @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  slug                 String      @unique
+  name                 String
+  tagline              String
+  description          String
+  iconUrl              String?
+  websiteUrl           String?
+  kind                 ProductKind @default(SOFTWARE)
+  /// Only set for SOFTWARE.
+  platform             Platform?
+  /// 0 means free: the download is claimed with an email, no payment provider involved.
+  priceCents           Int
+  currency             String      @default("usd")
+  status               AppStatus   @default(DRAFT)
+  /// Issue a license key with every order (for products that check one, like software).
+  licenseKeys          Boolean     @default(true)
   /// Devices a single license can be activated on.
-  maxActivations      Int       @default(3)
+  maxActivations       Int         @default(3)
   /// Ed25519 public key (raw 32 bytes, base64). Embedded in the app to verify license tokens offline.
-  signingPublicKey    String
+  signingPublicKey     String
   /// Ed25519 private key (PKCS8 DER), AES-256-GCM encrypted with APP_SECRET_KEY.
   signingPrivateKeyEnc String
-  polarProductId      String?
+  polarProductId       String?
   /// Price the Polar product was last synced with; used to detect price changes.
-  polarPriceCents     Int?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-  releases            Release[]
-  orders              Order[]
-  licenses            License[]
+  polarPriceCents      Int?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  releases             Release[]
+  orders               Order[]
+  licenses             License[]
 
   @@index([ownerId])
   @@index([status])

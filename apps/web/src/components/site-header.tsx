@@ -11,7 +11,7 @@ export async function SiteHeader() {
           <Logo />
         </Link>
         <nav className="flex items-center gap-5 text-sm font-medium">
-          <Link href="/docs" className="text-muted hover:text-ink">For developers</Link>
+          <Link href="/docs" className="text-muted hover:text-ink">Sell on Distrohub</Link>
           {user ? (
             <Link href="/dashboard" className="btn btn-sm">Dashboard</Link>
           ) : (

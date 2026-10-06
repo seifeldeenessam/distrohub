@@ -5,11 +5,13 @@ import { formatPrice } from "@/lib/money";
 import { latestRelease } from "@/lib/releases";
 import { AppIcon } from "@/components/app-icon";
 import { PLATFORM_LABEL } from "@/components/platform";
+import { KIND_LABEL } from "@/components/product-kind";
 
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  no_release: "This app has no download available yet. Try again later.",
+  no_release: "There's no download available yet. Try again later.",
+  invalid_email: "Enter a valid email address so we can send you the download link.",
   checkout_failed: "Checkout couldn't be started. Try again in a moment.",
   rate_limited: "Too many attempts. Wait a minute and try again.",
 };
@@ -32,7 +34,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const app = await getApp(slug);
   if (!app || app.status !== "PUBLISHED") notFound();
   const release = await latestRelease(app.id);
-  const price = formatPrice(app.priceCents, app.currency);
+  const free = app.priceCents === 0;
   const errorMessage = typeof error === "string" ? ERRORS[error] : undefined;
 
   return (
@@ -54,20 +56,34 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
 
       <aside className="md:pt-2">
         <div className="panel p-5 md:sticky md:top-6">
-          <form action="/api/checkout" method="post">
+          <form action="/api/checkout" method="post" className="space-y-3">
             <input type="hidden" name="slug" value={app.slug} />
+            {free && (
+              <div>
+                <label htmlFor="email" className="label">Email</label>
+                <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" className="input" />
+              </div>
+            )}
             <button type="submit" className="btn btn-primary w-full py-3 text-base" disabled={!release}>
-              {price} Download
+              {free ? "Download free" : `${formatPrice(app.priceCents, app.currency)} Download`}
             </button>
           </form>
           {errorMessage && <p role="alert" className="mt-3 rounded-md bg-danger-wash p-2 text-sm text-danger">{errorMessage}</p>}
           <p className="mt-3 text-sm text-muted">
-            One-time purchase. Your license key arrives by email and works on {app.maxActivations}{" "}
-            {app.maxActivations === 1 ? "device" : "devices"}.
+            {free ? "Free. " : "One-time purchase. "}
+            {app.licenseKeys
+              ? `Your license key arrives by email and works on ${app.maxActivations} ${app.maxActivations === 1 ? "device" : "devices"}.`
+              : "The download link arrives by email too and always has the newest version."}
           </p>
           <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border-t border-line pt-4 text-sm">
-            <dt className="text-muted">Platform</dt>
-            <dd>{PLATFORM_LABEL[app.platform]}</dd>
+            <dt className="text-muted">Type</dt>
+            <dd>{KIND_LABEL[app.kind].one}</dd>
+            {app.platform && (
+              <>
+                <dt className="text-muted">Platform</dt>
+                <dd>{PLATFORM_LABEL[app.platform]}</dd>
+              </>
+            )}
             <dt className="text-muted">Version</dt>
             <dd>{release?.version ?? "Not released"}</dd>
             {release && (
@@ -76,7 +92,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
                 <dd>{formatBytes(release.fileSize)}</dd>
               </>
             )}
-            <dt className="text-muted">Developer</dt>
+            <dt className="text-muted">Creator</dt>
             <dd>{app.websiteUrl ? <a href={app.websiteUrl} className="underline" rel="noopener">{app.owner.name}</a> : app.owner.name}</dd>
           </dl>
         </div>

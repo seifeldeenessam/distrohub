@@ -17,7 +17,7 @@ export function AuthForm({
         <div>
           <label htmlFor="name" className="label">Name</label>
           <input id="name" name="name" required defaultValue={state.name} className="input" autoComplete="name" />
-          <p className="hint">Shown on your app pages as the developer.</p>
+          <p className="hint">Shown on your product pages as the creator.</p>
         </div>
       )}
       <div>
