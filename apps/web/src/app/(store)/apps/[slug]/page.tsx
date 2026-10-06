@@ -1,0 +1,92 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { db } from "@/lib/db";
+import { formatPrice } from "@/lib/money";
+import { latestRelease } from "@/lib/releases";
+import { AppIcon } from "@/components/app-icon";
+import { PLATFORM_LABEL } from "@/components/platform";
+
+export const dynamic = "force-dynamic";
+
+const ERRORS: Record<string, string> = {
+  no_release: "This app has no download available yet. Try again later.",
+  checkout_failed: "Checkout couldn't be started. Try again in a moment.",
+  rate_limited: "Too many attempts. Wait a minute and try again.",
+};
+
+async function getApp(slug: string) {
+  return db.app.findUnique({
+    where: { slug },
+    include: { owner: { select: { name: true } } },
+  });
+}
+
+export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): Promise<Metadata> {
+  const app = await getApp((await params).slug);
+  return app ? { title: app.name, description: app.tagline } : {};
+}
+
+export default async function AppPage({ params, searchParams }: PageProps<"/apps/[slug]">) {
+  const { slug } = await params;
+  const { error } = await searchParams;
+  const app = await getApp(slug);
+  if (!app || app.status !== "PUBLISHED") notFound();
+  const release = await latestRelease(app.id);
+  const price = formatPrice(app.priceCents, app.currency);
+  const errorMessage = typeof error === "string" ? ERRORS[error] : undefined;
+
+  return (
+    <article className="grid gap-12 pt-12 sm:pt-20 md:grid-cols-[1fr_280px]">
+      <div>
+        <div className="flex items-start gap-5">
+          <AppIcon name={app.name} iconUrl={app.iconUrl} size={96} />
+          <div className="pt-1">
+            <h1 className="text-4xl font-bold sm:text-5xl">{app.name}</h1>
+            <p className="mt-2 text-lg text-muted">{app.tagline}</p>
+          </div>
+        </div>
+        <div className="prose-plain mt-10 max-w-prose text-[1.0625rem]">
+          {app.description.split(/\n{2,}/).map((para, i) => (
+            <p key={i} className="whitespace-pre-line">{para}</p>
+          ))}
+        </div>
+      </div>
+
+      <aside className="md:pt-2">
+        <div className="panel p-5 md:sticky md:top-6">
+          <form action="/api/checkout" method="post">
+            <input type="hidden" name="slug" value={app.slug} />
+            <button type="submit" className="btn btn-primary w-full py-3 text-base" disabled={!release}>
+              {price} Download
+            </button>
+          </form>
+          {errorMessage && <p role="alert" className="mt-3 rounded-md bg-danger-wash p-2 text-sm text-danger">{errorMessage}</p>}
+          <p className="mt-3 text-sm text-muted">
+            One-time purchase. Your license key arrives by email and works on {app.maxActivations}{" "}
+            {app.maxActivations === 1 ? "device" : "devices"}.
+          </p>
+          <dl className="mt-5 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 border-t border-line pt-4 text-sm">
+            <dt className="text-muted">Platform</dt>
+            <dd>{PLATFORM_LABEL[app.platform]}</dd>
+            <dt className="text-muted">Version</dt>
+            <dd>{release?.version ?? "Not released"}</dd>
+            {release && (
+              <>
+                <dt className="text-muted">Size</dt>
+                <dd>{formatBytes(release.fileSize)}</dd>
+              </>
+            )}
+            <dt className="text-muted">Developer</dt>
+            <dd>{app.websiteUrl ? <a href={app.websiteUrl} className="underline" rel="noopener">{app.owner.name}</a> : app.owner.name}</dd>
+          </dl>
+        </div>
+      </aside>
+    </article>
+  );
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024 ** 2) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+}

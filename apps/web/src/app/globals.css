@@ -1,0 +1,142 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #eef0ec;
+  --surface: #ffffff;
+  --ink: #18212b;
+  --muted: #5b6672;
+  --line: #d3d8d1;
+  --ledger: #0e6e55;
+  --ledger-ink: #0a5341;
+  --ledger-wash: #dcefe6;
+  --danger: #b4232f;
+  --danger-wash: #fbe7e8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #131a20;
+    --surface: #1b242c;
+    --ink: #e7ece6;
+    --muted: #94a0a8;
+    --line: #2d3943;
+    --ledger: #3fb58f;
+    --ledger-ink: #6fd3ae;
+    --ledger-wash: #173a30;
+    --danger: #f0717b;
+    --danger-wash: #3a1d21;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-ledger: var(--ledger);
+  --color-ledger-ink: var(--ledger-ink);
+  --color-ledger-wash: var(--ledger-wash);
+  --color-danger: var(--danger);
+  --color-danger-wash: var(--danger-wash);
+  --font-sans: var(--font-instrument);
+  --font-display: var(--font-bricolage);
+  --font-mono: var(--font-jetbrains);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ledger);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    padding: 0.625rem 1rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: background-color 120ms, border-color 120ms;
+  }
+  .btn:hover { border-color: var(--muted); }
+  .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--ledger);
+    border-color: var(--ledger);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--ledger-ink); border-color: var(--ledger-ink); }
+  .btn-danger { color: var(--danger); }
+  .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.8125rem; }
+
+  .label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.375rem; }
+  .hint { font-size: 0.8125rem; color: var(--muted); margin-top: 0.375rem; }
+  .input {
+    width: 100%;
+    border-radius: 0.5rem;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.9375rem;
+  }
+  .input:focus { outline: 2px solid var(--ledger); outline-offset: -1px; border-color: transparent; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.75rem;
+  }
+
+  .prose-plain p { margin: 0 0 1em; line-height: 1.65; }
+
+  /* The license "ticket": a stub with punched notches on both sides. */
+  .ticket {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 0.875rem;
+  }
+  .ticket-tear {
+    position: relative;
+    border-top: 2px dashed var(--line);
+  }
+  .ticket-tear::before,
+  .ticket-tear::after {
+    content: "";
+    position: absolute;
+    top: -13px;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+  }
+  .ticket-tear::before { left: -13px; clip-path: inset(0 0 0 50%); }
+  .ticket-tear::after { right: -13px; clip-path: inset(0 50% 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}

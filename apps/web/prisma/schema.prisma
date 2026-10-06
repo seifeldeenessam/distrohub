@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// A developer (seller) account.
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+  apiKeys      ApiKey[]
+  apps         App[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  /// sha256 of the cookie token; the raw token is never stored.
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// Secret key for the developer REST API (server-to-server only, never ship it in an app binary).
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  /// First chars of the key, shown in the dashboard ("dh_sk_ab12…").
+  prefix     String
+  hash       String    @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+enum Platform {
+  MACOS
+  WINDOWS
+  LINUX
+}
+
+enum AppStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model App {
+  id                  String    @id @default(cuid())
+  ownerId             String
+  owner               User      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  slug                String    @unique
+  name                String
+  tagline             String
+  description         String
+  iconUrl             String?
+  websiteUrl          String?
+  platform            Platform  @default(MACOS)
+  priceCents          Int
+  currency            String    @default("usd")
+  status              AppStatus @default(DRAFT)
+  /// Devices a single license can be activated on.
+  maxActivations      Int       @default(3)
+  /// Ed25519 public key (raw 32 bytes, base64). Embedded in the app to verify license tokens offline.
+  signingPublicKey    String
+  /// Ed25519 private key (PKCS8 DER), AES-256-GCM encrypted with APP_SECRET_KEY.
+  signingPrivateKeyEnc String
+  polarProductId      String?
+  /// Price the Polar product was last synced with; used to detect price changes.
+  polarPriceCents     Int?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  releases            Release[]
+  orders              Order[]
+  licenses            License[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+model Release {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  version   String
+  notes     String   @default("")
+  /// Object key in storage (R2/S3 or local).
+  fileKey   String   @unique
+  fileName  String
+  fileSize  Int      @default(0)
+  /// Set once the upload has been confirmed.
+  uploaded  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@unique([appId, version])
+  @@index([appId, createdAt])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
+model Order {
+  id                     String      @id @default(cuid())
+  appId                  String
+  app                    App         @relation(fields: [appId], references: [id], onDelete: Restrict)
+  status                 OrderStatus @default(PENDING)
+  provider               String
+  checkoutId             String      @unique
+  providerOrderId        String?     @unique
+  email                  String?
+  amountCents            Int
+  currency               String
+  platformFeeCents       Int         @default(0)
+  developerEarningsCents Int         @default(0)
+  /// Unguessable token used for the download link in the receipt email.
+  downloadToken          String      @unique
+  paidAt                 DateTime?
+  createdAt              DateTime    @default(now())
+  license                License?
+
+  @@index([appId, status])
+}
+
+enum LicenseStatus {
+  ACTIVE
+  REVOKED
+}
+
+model License {
+  id             String        @id @default(cuid())
+  key            String        @unique
+  appId          String
+  app            App           @relation(fields: [appId], references: [id], onDelete: Cascade)
+  orderId        String?       @unique
+  order          Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  email          String
+  status         LicenseStatus @default(ACTIVE)
+  maxActivations Int
+  note           String?
+  createdAt      DateTime      @default(now())
+  activations    Activation[]
+
+  @@index([appId])
+  @@index([email])
+}
+
+model Activation {
+  id         String   @id @default(cuid())
+  licenseId  String
+  license    License  @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+  deviceId   String
+  deviceName String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  @@unique([licenseId, deviceId])
+}
+
+/// Processed payment-provider webhook ids (idempotency).
+model WebhookEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
+}
