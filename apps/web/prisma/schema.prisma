@@ -105,6 +105,7 @@ model App {
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
   releases             Release[]
+  media                Media[]
   orders               Order[]
   licenses             License[]
 
@@ -128,6 +129,30 @@ model Release {
 
   @@unique([appId, version])
   @@index([appId, createdAt])
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+/// A screenshot or demo video shown on the product page.
+model Media {
+  id          String    @id @default(cuid())
+  appId       String
+  app         App       @relation(fields: [appId], references: [id], onDelete: Cascade)
+  kind        MediaKind
+  /// Object key in storage (R2/S3 or local).
+  fileKey     String    @unique
+  contentType String
+  fileSize    Int       @default(0)
+  /// Gallery order, lowest first.
+  position    Int       @default(0)
+  /// Set once the upload has been confirmed.
+  uploaded    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([appId, position])
 }
 
 enum OrderStatus {

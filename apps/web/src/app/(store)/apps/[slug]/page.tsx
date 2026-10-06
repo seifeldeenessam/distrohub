@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/money";
 import { latestRelease } from "@/lib/releases";
+import { listMedia, mediaUrl } from "@/lib/media";
+import { MediaGallery } from "@/components/media-gallery";
 import { AppIcon } from "@/components/app-icon";
 import { PLATFORM_LABEL } from "@/components/platform";
 import { KIND_LABEL } from "@/components/product-kind";
@@ -25,7 +27,13 @@ async function getApp(slug: string) {
 
 export async function generateMetadata({ params }: PageProps<"/apps/[slug]">): Promise<Metadata> {
   const app = await getApp((await params).slug);
-  return app ? { title: app.name, description: app.tagline } : {};
+  if (!app || app.status !== "PUBLISHED") return {};
+  const cover = (await listMedia(app.id)).find((m) => m.kind === "IMAGE");
+  return {
+    title: app.name,
+    description: app.tagline,
+    ...(cover && { openGraph: { images: [mediaUrl(cover.id)] } }),
+  };
 }
 
 export default async function AppPage({ params, searchParams }: PageProps<"/apps/[slug]">) {
@@ -33,13 +41,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const { error } = await searchParams;
   const app = await getApp(slug);
   if (!app || app.status !== "PUBLISHED") notFound();
-  const release = await latestRelease(app.id);
+  const [release, media] = await Promise.all([latestRelease(app.id), listMedia(app.id)]);
   const free = app.priceCents === 0;
   const errorMessage = typeof error === "string" ? ERRORS[error] : undefined;
 
   return (
     <article className="grid gap-12 pt-12 sm:pt-20 md:grid-cols-[1fr_280px]">
-      <div>
+      <div className="min-w-0">
         <div className="flex items-start gap-5">
           <AppIcon name={app.name} iconUrl={app.iconUrl} size={96} />
           <div className="pt-1">
@@ -47,6 +55,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
             <p className="mt-2 text-lg text-muted">{app.tagline}</p>
           </div>
         </div>
+        <MediaGallery name={app.name} items={media.map((m) => ({ id: m.id, kind: m.kind, url: mediaUrl(m.id) }))} />
         <div className="prose-plain mt-10 max-w-prose text-[1.0625rem]">
           {app.description.split(/\n{2,}/).map((para, i) => (
             <p key={i} className="whitespace-pre-line">{para}</p>

@@ -13,7 +13,7 @@
 ## Project
 
 Distrohub is a store for any digital product (software, ebooks, courses, templates, fonts, audio…), free or paid:
-- **Developers** upload a file, set a price from $0 and pick a product type. Software can turn on license keys and add a license check to the app.
+- **Developers** upload a file, set a price from $0, pick a product type and add screenshots or a demo video. Software can turn on license keys and add a license check to the app.
 - **Buyers** click "$X Download" and pay through Polar, or "Download free" and enter an email. The download starts, and the download link (plus a license key, when the product uses keys) is emailed to them.
 - **The app** (license-key products only) activates the key against the license API and unlocks.
 
@@ -76,6 +76,7 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
   - `fulfillment.ts`: `fulfillOrder()` and `refundOrder()`, both idempotent. This is the only place an order becomes PAID and a license is issued.
   - `payments/`: the provider interface, with `polar` and `mock` implementations.
   - `storage.ts`: `s3` (R2 or S3, presigned URLs) and `local` (`.storage/`, served by `/api/storage`).
+  - `media.ts`: product screenshots and videos (`Media` model). Allowed types are a fixed list (no SVG); `/media/[mediaId]` redirects to a short-lived inline storage URL.
   - `email.ts`: Resend, or console output when `RESEND_API_KEY` is unset.
 - `app/(store)` is the public storefront, docs, mock checkout and purchase-success page.
 - `app/(auth)` has login and register; `app/dashboard` is the developer console. Mutations go through server actions in `dashboard/actions.ts`, and each action re-checks ownership.
@@ -114,7 +115,7 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
 
 All variables are documented in `apps/web/.env.example`. In local development, `PAYMENTS_PROVIDER=mock`, `STORAGE_DRIVER=local` and an empty `RESEND_API_KEY` make the full purchase flow work offline. Production needs:
 - Polar: `POLAR_ACCESS_TOKEN`, `POLAR_WEBHOOK_SECRET`, `POLAR_SERVER`.
-- R2: the `S3_*` variables, plus a CORS rule on the bucket allowing browser `PUT`.
+- R2: the `S3_*` variables, plus a CORS rule on the bucket allowing browser `PUT` with the `Content-Type` header (media uploads are signed with their type).
 - Resend: `RESEND_API_KEY`, `EMAIL_FROM`.
 
 The rate limiter is in-memory (one instance only).

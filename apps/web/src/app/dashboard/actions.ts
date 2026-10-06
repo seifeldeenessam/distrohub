@@ -9,6 +9,7 @@ import { generateApiKey } from "@/lib/api-auth";
 import { generateLicenseKey, generateSigningKeyPair, randomToken } from "@/lib/crypto";
 import { sendLicenseEmail } from "@/lib/fulfillment";
 import { completeRelease, createRelease, latestRelease, releaseInput } from "@/lib/releases";
+import { completeMedia, createMedia, mediaInput, moveMedia as reorderMedia } from "@/lib/media";
 import { formatPrice, MIN_PAID_PRICE_CENTS } from "@/lib/money";
 import { slugify } from "@/lib/slug";
 import { PRODUCT_KINDS } from "@/components/product-kind";
@@ -116,6 +117,34 @@ export async function deleteRelease(appId: string, releaseId: string) {
   await requireOwnedApp(appId);
   await db.release.deleteMany({ where: { id: releaseId, appId } });
   revalidatePath(`/dashboard/apps/${appId}`, "layout");
+}
+
+export async function startMediaUpload(appId: string, input: unknown) {
+  await requireOwnedApp(appId);
+  const parsed = mediaInput.safeParse(input);
+  if (!parsed.success) return { ok: false as const, message: parsed.error.issues[0].message };
+  const result = await createMedia(appId, parsed.data);
+  if (!result.ok) return result;
+  return { ok: true as const, mediaId: result.media.id, uploadUrl: result.uploadUrl };
+}
+
+export async function finishMediaUpload(appId: string, mediaId: string) {
+  await requireOwnedApp(appId);
+  const result = await completeMedia(appId, mediaId);
+  revalidatePath(`/dashboard/apps/${appId}/media`);
+  return result.ok ? { ok: true as const } : result;
+}
+
+export async function moveMedia(appId: string, mediaId: string, direction: -1 | 1) {
+  await requireOwnedApp(appId);
+  await reorderMedia(appId, mediaId, direction === -1 ? -1 : 1);
+  revalidatePath(`/dashboard/apps/${appId}/media`);
+}
+
+export async function deleteMedia(appId: string, mediaId: string) {
+  await requireOwnedApp(appId);
+  await db.media.deleteMany({ where: { id: mediaId, appId } });
+  revalidatePath(`/dashboard/apps/${appId}/media`);
 }
 
 async function ownedLicense(licenseId: string) {
