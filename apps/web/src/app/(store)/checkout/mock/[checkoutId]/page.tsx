@@ -20,7 +20,7 @@ function mockEnabled() {
 export default async function MockCheckoutPage({ params }: PageProps<"/checkout/mock/[checkoutId]">) {
   if (!mockEnabled()) notFound();
   const { checkoutId } = await params;
-  const order = await db.order.findUnique({ where: { checkoutId }, include: { app: true } });
+  const order = await db.order.findUnique({ where: { checkoutId }, include: { app: true, user: { select: { email: true } } } });
   if (!order) notFound();
   if (order.status !== "PENDING") redirect(`/purchase/success?checkout_id=${checkoutId}`);
 
@@ -52,7 +52,7 @@ export default async function MockCheckoutPage({ params }: PageProps<"/checkout/
             <label htmlFor="email" className="label">
               {order.app.licenseKeys ? "Email for your license key" : "Email for your download link"}
             </label>
-            <input id="email" name="email" type="email" required className="input" placeholder="you@example.com" />
+            <input id="email" name="email" type="email" required className="input" placeholder="you@example.com" defaultValue={order.user?.email} />
           </div>
           <button className="btn btn-primary w-full">Pay {formatPrice(order.amountCents, order.currency)}</button>
         </form>

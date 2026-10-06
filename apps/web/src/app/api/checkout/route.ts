@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { randomToken } from "@/lib/crypto";
+import { getCurrentUser } from "@/lib/auth";
 import { fulfillOrder } from "@/lib/fulfillment";
 import { payments } from "@/lib/payments";
 import { latestRelease } from "@/lib/releases";
@@ -23,8 +24,11 @@ export async function POST(req: Request) {
   if (!app || app.status !== "PUBLISHED") return NextResponse.redirect(`${env.appUrl}/`, 303);
   if (!(await latestRelease(app.id))) return back("no_release");
 
+  // Signed-in buyers get the order on their account; free downloads go to the account email.
+  const user = await getCurrentUser();
+
   if (app.priceCents === 0) {
-    const email = z.email().safeParse(String(form.get("email") ?? "").trim());
+    const email = z.email().safeParse(user?.email ?? String(form.get("email") ?? "").trim());
     if (!email.success) return back("invalid_email");
     const checkoutId = `free_${randomToken(12)}`;
     await db.order.create({
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
         appId: app.id,
         provider: "free",
         checkoutId,
+        userId: user?.id,
         amountCents: 0,
         currency: app.currency,
         downloadToken: randomToken(),
@@ -49,12 +54,13 @@ export async function POST(req: Request) {
 
   try {
     const provider = payments();
-    const checkout = await provider.createCheckout({ app });
+    const checkout = await provider.createCheckout({ app, customerEmail: user?.email });
     await db.order.create({
       data: {
         appId: app.id,
         provider: provider.name,
         checkoutId: checkout.checkoutId,
+        userId: user?.id,
         amountCents: app.priceCents,
         currency: app.currency,
         downloadToken: randomToken(),

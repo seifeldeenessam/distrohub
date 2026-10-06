@@ -1,8 +1,9 @@
-// Seeds a demo developer, two paid apps, a free ebook and a placeholder file for each,
-// so the storefront and the full purchase flow work locally with PAYMENTS_PROVIDER=mock.
-// Usage: pnpm db:seed   (login: demo@distrohub.dev / demo-password)
+// Seeds a demo developer, two paid apps, a free ebook and a placeholder file for each, plus a few
+// buyers with orders and reviews, so the storefront and the full purchase flow work locally with
+// PAYMENTS_PROVIDER=mock.
+// Usage: pnpm db:seed   (sign in as demo@distrohub.dev or buyer@distrohub.dev; the code prints in the dev server log)
 import "dotenv/config";
-import { createCipheriv, generateKeyPairSync, randomBytes, scryptSync } from "node:crypto";
+import { createCipheriv, generateKeyPairSync, randomBytes, randomInt } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -22,9 +23,6 @@ function keys() {
     signingPrivateKeyEnc: [iv, cipher.getAuthTag(), ct].map((b) => b.toString("base64url")).join("."),
   };
 }
-
-const salt = randomBytes(16);
-const passwordHash = `scrypt$${salt.toString("base64")}$${scryptSync("demo-password", salt, 64).toString("base64")}`;
 
 const APPS = [
   {
@@ -67,7 +65,7 @@ async function main() {
   const user = await db.user.upsert({
     where: { email: "demo@distrohub.dev" },
     update: {},
-    create: { email: "demo@distrohub.dev", name: "Demo Studio", passwordHash },
+    create: { email: "demo@distrohub.dev", name: "Demo Studio" },
   });
 
   for (const { file: fileName, ...a } of APPS) {
@@ -86,6 +84,72 @@ async function main() {
       create: { appId: app.id, version: "1.0.0", fileKey, fileName, fileSize: 32, uploaded: true },
     });
     console.log(`${a.name}: appId=${app.id} publicKey=${app.signingPublicKey}`);
+  }
+  await seedBuyers();
+}
+
+// buyer@distrohub.dev owns MenuWeather and Shipping Notes without reviewing them, so you can try
+// writing a review. The others have left reviews.
+const BUYERS = [
+  { email: "buyer@distrohub.dev", name: "", orders: [["menuweather"], ["shipping-notes"]] },
+  {
+    email: "ana@example.com",
+    name: "Ana Petrova",
+    orders: [
+      ["menuweather", 5, "Exactly what I wanted: glance up, see if I need a jacket. Uses almost no battery."],
+      ["clipstack", 4, "Search is instant. I'd love pinned items, but it already replaced two other apps for me."],
+    ],
+  },
+  {
+    email: "kenji@example.com",
+    name: "Kenji Mori",
+    orders: [
+      ["menuweather", 4, ""],
+      ["shipping-notes", 5, "Short and practical. The launch-week checklist alone was worth the read."],
+    ],
+  },
+] as const;
+
+const KEY_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const licenseKey = () =>
+  Array.from({ length: 5 }, () => Array.from({ length: 5 }, () => KEY_ALPHABET[randomInt(32)]).join("")).join("-");
+
+async function seedBuyers() {
+  for (const buyer of BUYERS) {
+    const user = await db.user.upsert({
+      where: { email: buyer.email },
+      update: {},
+      create: { email: buyer.email, name: buyer.name },
+    });
+    for (const [slug, rating, body] of buyer.orders as readonly (readonly [string, number?, string?])[]) {
+      const app = await db.app.findUniqueOrThrow({ where: { slug } });
+      const checkoutId = `seed_${slug}_${user.id}`;
+      if (await db.order.findUnique({ where: { checkoutId } })) continue;
+      const fee = Math.round(app.priceCents / 10);
+      const order = await db.order.create({
+        data: {
+          appId: app.id,
+          userId: user.id,
+          email: user.email,
+          status: "PAID",
+          provider: app.priceCents === 0 ? "free" : "mock",
+          checkoutId,
+          providerOrderId: checkoutId,
+          amountCents: app.priceCents,
+          currency: app.currency,
+          platformFeeCents: fee,
+          developerEarningsCents: app.priceCents - fee,
+          downloadToken: randomBytes(32).toString("base64url"),
+          paidAt: new Date(),
+        },
+      });
+      if (app.licenseKeys) {
+        await db.license.create({
+          data: { key: licenseKey(), appId: app.id, orderId: order.id, email: user.email, maxActivations: app.maxActivations },
+        });
+      }
+      if (rating) await db.review.create({ data: { appId: app.id, userId: user.id, rating, body: body ?? "" } });
+    }
   }
 }
 

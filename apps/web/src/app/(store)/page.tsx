@@ -4,6 +4,8 @@ import { priceLabel } from "@/lib/money";
 import { AppIcon } from "@/components/app-icon";
 import { PLATFORM_LABEL } from "@/components/platform";
 import { KIND_LABEL, PRODUCT_KINDS } from "@/components/product-kind";
+import { Stars, formatRating } from "@/components/stars";
+import { ratingSummaries } from "@/lib/reviews";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +35,7 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
     // Only offer filters for types that have something listed.
     db.app.groupBy({ by: ["kind"], where: listed }),
   ]);
+  const ratings = await ratingSummaries(apps.map((a) => a.id));
   const kindFilters = PRODUCT_KINDS.filter((k) => kinds.some((g) => g.kind === k));
   const filtered = !!(q || kind || free);
 
@@ -68,7 +71,9 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
       </form>
 
       <ul className="mt-8 border-t border-line">
-        {apps.map((app) => (
+        {apps.map((app) => {
+          const rating = ratings.get(app.id);
+          return (
           <li key={app.id} className="border-b border-line">
             <Link href={`/apps/${app.slug}`} className="group flex items-center gap-4 py-5 sm:gap-6">
               <AppIcon name={app.name} iconUrl={app.iconUrl} size={64} />
@@ -79,13 +84,20 @@ export default async function ExplorePage({ searchParams }: PageProps<"/">) {
                   {app.platform ? `${KIND_LABEL[app.kind].one} for ${PLATFORM_LABEL[app.platform]}` : KIND_LABEL[app.kind].one}, by{" "}
                   {app.owner.name}
                 </p>
+                {rating && (
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+                    <Stars rating={rating.average} size={14} />
+                    <span>{formatRating(rating.average)} ({rating.count})</span>
+                  </p>
+                )}
               </div>
               <span className="rounded-full bg-accent-wash px-3 py-1 text-sm font-semibold text-accent-ink">
                 {priceLabel(app.priceCents, app.currency)}
               </span>
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
 
       {apps.length === 0 && (

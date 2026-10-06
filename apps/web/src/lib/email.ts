@@ -72,3 +72,23 @@ export function orderEmail(input: {
 
   return { subject: license ? `Your ${productName} license key` : `Your ${productName} download`, text, html };
 }
+
+/** One-time sign-in code. */
+export function loginCodeEmail(code: string, ttlMinutes: number) {
+  const text = [
+    `Your Distrohub sign-in code: ${code}`,
+    ``,
+    `It works once and expires in ${ttlMinutes} minutes. If you didn't try to sign in, ignore this email.`,
+  ].join("\n");
+  const html = `<!doctype html><html><body style="margin:0;background:#f8f7f5;font-family:'Plus Jakarta Sans',-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1e1914">
+<div style="max-width:520px;margin:0 auto;padding:40px 24px">
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 28px"><tr>
+    <td><img src="${escape(env.appUrl)}/brand/mark-128.png" width="32" height="32" alt="" style="display:block;border-radius:8px"></td>
+    <td style="padding-left:10px;font-size:18px;font-weight:700;letter-spacing:-0.3px">Distrohub</td>
+  </tr></table>
+  <p style="font-size:15px;margin:0 0 16px">Your sign-in code:</p>
+  <p style="font-family:SFMono-Regular,Menlo,Consolas,monospace;font-size:32px;font-weight:700;letter-spacing:6px;margin:0 0 24px">${escape(code)}</p>
+  <p style="font-size:14px;line-height:1.6;color:#6b635c;margin:0">It works once and expires in ${ttlMinutes} minutes. If you didn't try to sign in, ignore this email.</p>
+</div></body></html>`;
+  return { subject: `${code} is your Distrohub sign-in code`, text, html };
+}

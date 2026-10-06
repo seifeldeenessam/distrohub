@@ -7,13 +7,9 @@ import {
   generateKeyPairSync,
   randomBytes,
   randomInt,
-  scrypt,
   timingSafeEqual,
 } from "node:crypto";
-import { promisify } from "node:util";
 import { env } from "./env";
-
-const scryptAsync = promisify(scrypt) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>;
 
 export const randomToken = (bytes = 32) => randomBytes(bytes).toString("base64url");
 
@@ -27,20 +23,6 @@ export function safeEqual(a: string, b: string) {
   const ab = Buffer.from(a);
   const bb = Buffer.from(b);
   return ab.length === bb.length && timingSafeEqual(ab, bb);
-}
-
-export async function hashPassword(password: string) {
-  const salt = randomBytes(16);
-  const hash = await scryptAsync(password, salt, 64);
-  return `scrypt$${salt.toString("base64")}$${hash.toString("base64")}`;
-}
-
-export async function verifyPassword(password: string, stored: string) {
-  const [scheme, saltB64, hashB64] = stored.split("$");
-  if (scheme !== "scrypt" || !saltB64 || !hashB64) return false;
-  const expected = Buffer.from(hashB64, "base64");
-  const actual = await scryptAsync(password, Buffer.from(saltB64, "base64"), expected.length);
-  return timingSafeEqual(actual, expected);
 }
 
 /** AES-256-GCM with APP_SECRET_KEY. Output: iv.tag.ciphertext (base64url). */

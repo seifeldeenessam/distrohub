@@ -39,15 +39,23 @@ export const getCurrentUser = cache(async () => {
   return session.user;
 });
 
-export async function requireUser() {
+/** `next` is where to come back to after signing in. */
+export async function requireUser(next?: string) {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
   return user;
+}
+
+/** Only same-site paths are allowed as a post-sign-in redirect ("//evil.com" is another site). */
+export function safeNext(next: unknown, fallback: string) {
+  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
+    ? next
+    : fallback;
 }
 
 /** Loads an app only if it belongs to the signed-in developer. */
 export async function requireOwnedApp(appId: string) {
-  const user = await requireUser();
+  const user = await requireUser(`/dashboard/apps/${appId}`);
   const app = await db.app.findFirst({ where: { id: appId, ownerId: user.id } });
   if (!app) redirect("/dashboard");
   return { user, app };

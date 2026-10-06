@@ -37,7 +37,7 @@ sed -i '' "s|^APP_SECRET_KEY=.*|APP_SECRET_KEY=\"$(openssl rand -base64 32)\"|" 
 
 createdb distrohub   # or point DATABASE_URL at an existing database
 pnpm db:migrate
-pnpm db:seed         # demo developer demo@distrohub.dev / demo-password + 2 apps
+pnpm db:seed         # demo developer demo@distrohub.dev, demo buyer buyer@distrohub.dev, 3 products with reviews
 pnpm dev             # http://localhost:3000
 ```
 
@@ -95,8 +95,13 @@ Full reference with examples at `/docs` in the running app.
 - Download links (`/d/{token}`) are unguessable, always serve the latest release and stop working after a refund.
 - Polar webhooks are signature-verified and de-duplicated by `webhook-id`; fulfillment is idempotent.
 
+## Accounts and reviews
+
+- **Sign-in is passwordless.** `/login` emails a 6-digit code (10 minutes, single use, 5 wrong guesses, stored as an HMAC). An unknown email gets an account once its code is verified; `/register` does the same and asks for a creator name. Locally the code prints in the dev server log.
+- **Buyers and creators share one account.** `/account` lists every order for the account's email (including ones placed before signing up) with download links, license keys and activated devices, which the buyer can sign out remotely.
+- **Reviews** (1 to 5 stars, optional text) can be posted by verified buyers only: a paid, not refunded, order for the product. One review per account per product; creators can't review their own.
+
 ## Not built yet
 
 - **Developer payouts.** Polar is the merchant of record for the platform's single organization; it has no split payouts. Earnings per developer (after `PLATFORM_FEE_BPS`) are tracked on every order and shown in the dashboard, but paying developers out is manual for now.
-- Buyer accounts ("my purchases"); today buyers rely on the receipt email, and developers can resend it from the dashboard.
 - Free apps, discounts, multiple currencies, icon upload (icon is a URL), app review/moderation before publishing.

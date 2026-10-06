@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatPrice } from "@/lib/money";
@@ -8,6 +9,11 @@ import { MediaGallery } from "@/components/media-gallery";
 import { AppIcon } from "@/components/app-icon";
 import { PLATFORM_LABEL } from "@/components/platform";
 import { KIND_LABEL } from "@/components/product-kind";
+import { Stars, formatRating } from "@/components/stars";
+import { getCurrentUser } from "@/lib/auth";
+import { hasPurchased } from "@/lib/customer";
+import { listReviews, ratingSummary } from "@/lib/reviews";
+import { ReviewForm } from "./review-form";
 
 export const dynamic = "force-dynamic";
 
@@ -41,18 +47,33 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
   const { error } = await searchParams;
   const app = await getApp(slug);
   if (!app || app.status !== "PUBLISHED") notFound();
-  const [release, media] = await Promise.all([latestRelease(app.id), listMedia(app.id)]);
+  const [release, media, user, rating, reviews] = await Promise.all([
+    latestRelease(app.id),
+    listMedia(app.id),
+    getCurrentUser(),
+    ratingSummary(app.id),
+    listReviews(app.id),
+  ]);
+  const isOwner = user?.id === app.ownerId;
+  const canReview = !!user && !isOwner && (await hasPurchased(user, app.id));
+  const myReview = user ? reviews.find((r) => r.userId === user.id) : undefined;
   const free = app.priceCents === 0;
   const errorMessage = typeof error === "string" ? ERRORS[error] : undefined;
 
   return (
-    <article className="grid gap-12 pt-12 sm:pt-20 md:grid-cols-[1fr_280px]">
+    <article className="grid gap-12 pt-12 sm:pt-20 md:grid-cols-[1fr_280px] md:gap-y-14">
       <div className="min-w-0">
         <div className="flex items-start gap-5">
           <AppIcon name={app.name} iconUrl={app.iconUrl} size={96} />
           <div className="pt-1">
             <h1 className="text-4xl font-bold sm:text-5xl">{app.name}</h1>
             <p className="mt-2 text-lg text-muted">{app.tagline}</p>
+            {rating && (
+              <a href="#reviews" className="mt-2 inline-flex items-center gap-2 text-sm text-muted hover:text-ink">
+                <Stars rating={rating.average} />
+                <span><span className="font-semibold text-ink">{formatRating(rating.average)}</span> ({rating.count} {rating.count === 1 ? "review" : "reviews"})</span>
+              </a>
+            )}
           </div>
         </div>
         <MediaGallery name={app.name} items={media.map((m) => ({ id: m.id, kind: m.kind, url: mediaUrl(m.id) }))} />
@@ -63,11 +84,14 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
         </div>
       </div>
 
-      <aside className="md:pt-2">
+      <aside className="md:row-span-2 md:pt-2">
         <div className="panel p-5 md:sticky md:top-6">
           <form action="/api/checkout" method="post" className="space-y-3">
             <input type="hidden" name="slug" value={app.slug} />
-            {free && (
+            {free && user && (
+              <p className="text-sm text-muted">The download link goes to <span className="font-medium text-ink">{user.email}</span>.</p>
+            )}
+            {free && !user && (
               <div>
                 <label htmlFor="email" className="label">Email</label>
                 <input id="email" name="email" type="email" required autoComplete="email" placeholder="you@example.com" className="input" />
@@ -106,9 +130,61 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
           </dl>
         </div>
       </aside>
+
+      <section id="reviews" className="min-w-0 scroll-mt-8 border-t border-line pt-10 md:col-start-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="text-2xl font-bold">Reviews</h2>
+          {rating && (
+            <p className="flex items-center gap-2 text-sm text-muted">
+              <Stars rating={rating.average} />
+              <span><span className="font-semibold text-ink">{formatRating(rating.average)}</span> out of 5, {rating.count} {rating.count === 1 ? "review" : "reviews"}</span>
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6">
+          {canReview ? (
+            <ReviewForm
+              appId={app.id}
+              existing={myReview && { rating: myReview.rating, body: myReview.body }}
+              needsName={!user!.name}
+            />
+          ) : !user ? (
+            <p className="text-sm text-muted">
+              Got this product? <Link href={`/login?next=${encodeURIComponent(`/apps/${app.slug}#reviews`)}`} className="font-medium text-ink underline">Sign in</Link> with the email you used to review it.
+            </p>
+          ) : !isOwner ? (
+            <p className="text-sm text-muted">
+              Only people who got {app.name} can review it. Signed in as {user.email}.
+            </p>
+          ) : null}
+        </div>
+
+        {reviews.length === 0 ? (
+          <p className="mt-6 text-muted">No reviews yet.</p>
+        ) : (
+          <ul className="mt-6 space-y-6">
+            {reviews.map((r) => (
+              <li key={r.id} className="border-b border-line pb-6 last:border-0">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <Stars rating={r.rating} />
+                  <span className="font-semibold">{r.user.name || "A buyer"}</span>
+                  <span className="text-sm text-muted">
+                    <time dateTime={r.createdAt.toISOString()}>{formatDate(r.createdAt)}</time>
+                    {r.userId === user?.id && " (you)"}
+                  </span>
+                </div>
+                {r.body && <p className="mt-2 max-w-prose whitespace-pre-line">{r.body}</p>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </article>
   );
 }
+
+const formatDate = (d: Date) => d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 ** 2) return `${Math.max(1, Math.round(bytes / 1024))} KB`;

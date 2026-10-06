@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { Logo, LogoMark } from "@/components/logo";
 import { requireUser } from "@/lib/auth";
-import { logout } from "../(auth)/actions";
+import { ProfileForm } from "../(store)/account/client";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const user = await requireUser();
+  const user = await requireUser("/dashboard");
   return (
     <>
       <header className="border-b border-line">
@@ -18,13 +18,24 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link href="/dashboard/api-keys" className="hover:text-ink">API keys</Link>
             <Link href="/docs" className="hover:text-ink">Docs</Link>
           </nav>
-          <form action={logout} className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-3 text-sm">
             <span className="hidden text-muted sm:inline">{user.email}</span>
-            <button className="btn btn-sm whitespace-nowrap">Sign out</button>
-          </form>
+            <Link href="/account" className="btn btn-sm whitespace-nowrap">Account</Link>
+          </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+        {user.name ? (
+          children
+        ) : (
+          // Accounts made from a purchase or plain sign-in have no name yet; products need a creator name.
+          <div className="max-w-md">
+            <h1 className="text-3xl font-bold">Start selling</h1>
+            <p className="mt-2 mb-6 text-muted">Add the name buyers see as the creator of your products.</p>
+            <ProfileForm name="" label="Continue" />
+          </div>
+        )}
+      </main>
     </>
   );
 }

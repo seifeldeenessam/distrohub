@@ -16,6 +16,7 @@ Distrohub is a store for any digital product (software, ebooks, courses, templat
 - **Developers** upload a file, set a price from $0, pick a product type and add screenshots or a demo video. Software can turn on license keys and add a license check to the app.
 - **Buyers** click "$X Download" and pay through Polar, or "Download free" and enter an email. The download starts, and the download link (plus a license key, when the product uses keys) is emailed to them.
 - **The app** (license-key products only) activates the key against the license API and unlocks.
+- **Accounts** are passwordless (email one-time code) and shared by buyers and creators. Buyers see their orders, keys and devices at `/account` and review products they got.
 
 Products are the `App` model internally (`appId`, `/apps/[slug]`, `/api/v1/apps` are stable public names); UI copy says "product".
 
@@ -35,7 +36,7 @@ pnpm typecheck               # next typegen + tsc --noEmit
 pnpm lint
 pnpm build
 pnpm db:migrate              # prisma migrate dev (create + apply migration)
-pnpm db:seed                 # demo@distrohub.dev / demo-password, 2 published apps
+pnpm db:seed                 # demo@distrohub.dev (creator), buyer@distrohub.dev, 3 products with reviews
 pnpm --filter web db:deploy  # prisma migrate deploy (production)
 ```
 
@@ -69,7 +70,10 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
 - `lib/` holds server code. Every module imports `server-only`.
   - `env.ts`: typed env access; use it instead of reading `process.env` directly.
   - `db.ts`: the Prisma singleton.
-  - `auth.ts`: cookie sessions, `requireUser()` and `requireOwnedApp(appId)`.
+  - `auth.ts`: cookie sessions, `requireUser(next?)`, `requireOwnedApp(appId)` and `safeNext()` for post-sign-in redirects.
+  - `login-codes.ts`: email one-time codes, the only way to sign in. No passwords anywhere.
+  - `customer.ts`: `accountOrdersWhere(user)` (orders placed signed in, or sent to the account email) and `hasPurchased()`.
+  - `reviews.ts`: rating summaries and review listing.
   - `api-auth.ts` + `api-handler.ts`: `withApiKey()` wraps every developer-API route. It checks the `Bearer dh_sk_…` key and, when `appId` is in the path, that the caller owns the app.
   - `crypto.ts`: tokens, scrypt passwords, AES-256-GCM, Ed25519 key generation and license-key generation.
   - `license-token.ts` + `licenses.ts`: activate, validate and deactivate, plus signed tokens.
@@ -79,7 +83,7 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
   - `media.ts`: product screenshots and videos (`Media` model). Allowed types are a fixed list (no SVG); `/media/[mediaId]` redirects to a short-lived inline storage URL.
   - `email.ts`: Resend, or console output when `RESEND_API_KEY` is unset.
 - `app/(store)` is the public storefront, docs, mock checkout and purchase-success page.
-- `app/(auth)` has login and register; `app/dashboard` is the developer console. Mutations go through server actions in `dashboard/actions.ts`, and each action re-checks ownership.
+- `app/(auth)` has login and register (one two-step form: email, then code; `authenticate` action). `app/(store)/account` is the buyer's account; `app/dashboard` is the developer console, gated on the account having a name. Mutations go through server actions in `dashboard/actions.ts`, and each action re-checks ownership.
 - `app/api/v1/licenses/{activate,validate,deactivate}` is the **public** API called by shipped apps. It takes no secret, so it is rate limited per IP.
 - `app/api/v1/apps/**` and `app/api/v1/licenses/[licenseId]` form the **developer** API (secret key).
 - `app/api/checkout` creates a PENDING order and redirects to checkout. For a $0 product it skips the payments provider and calls `fulfillOrder()` straight away (provider `free`). `app/api/webhooks/polar` handles `order.paid` and `order.refunded`. `app/d/[token]` is the permanent download link and always serves the latest uploaded release.
@@ -98,6 +102,8 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
 - **Mock payments give licenses away for free.** `env.paymentsProvider` throws in production unless `PAYMENTS_PROVIDER=polar` or `ALLOW_MOCK_PAYMENTS=true`. Keep that guard.
 - **Webhooks must verify the signature first**, de-duplicate on the `webhook-id` header (the `WebhookEvent` table), and return 5xx only when Polar should retry.
 - **Activation limits** are enforced inside a transaction holding a row lock (`SELECT … FOR UPDATE` on `License`). Keep any new activation path inside that lock.
+- **Sign-in codes**: never store or log the code itself outside the email (the console email driver is dev only). Keep both rate limits (per IP and per email), the attempt limit and single use.
+- **Only verified buyers review**: `hasPurchased()` (a PAID order matched by `userId` or the OTP-verified account email). One review per `(appId, userId)`.
 - **Schema changes** go through `pnpm db:migrate --name <change>`. Commit the generated migration; never edit an applied one.
 
 ## UI conventions
@@ -123,6 +129,7 @@ The rate limiter is in-memory (one instance only).
 ## Known gaps
 
 - **Developer payouts are manual.** Polar has no split payouts; per-order developer earnings are tracked after `PLATFORM_FEE_BPS`.
-- **No buyer accounts**, no pay-what-you-want, no discounts, single currency (USD).
-- **Free claims aren't email-verified**: anyone can claim a $0 product (and its license key) with any address, rate limited per IP.
+- No pay-what-you-want, no discounts, single currency (USD).
+- **Free claims aren't email-verified** when signed out: anyone can claim a $0 product (and its license key) with any address, rate limited per IP. Signed-in claims use the account email. Reviews still need the OTP-verified email, so a fake claim can't be used to review.
+- **No review moderation** or creator replies yet.
 - **The Swift SDK has never been compiled in CI**; build it in Xcode after changing it.

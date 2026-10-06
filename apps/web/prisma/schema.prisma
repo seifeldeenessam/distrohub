@@ -7,17 +7,34 @@ datasource db {
   provider = "postgresql"
 }
 
-/// A developer (seller) account.
+/// An account. Buyers and creators share one model: anyone signed in can buy, review and sell.
+/// Sign-in is passwordless (a one-time code sent to the email).
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  name         String
-  passwordHash String
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  sessions     Session[]
-  apiKeys      ApiKey[]
-  apps         App[]
+  id        String    @id @default(cuid())
+  email     String    @unique
+  /// Shown on reviews and as the creator on product pages. Empty until the person sets it.
+  name      String    @default("")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  sessions  Session[]
+  apiKeys   ApiKey[]
+  apps      App[]
+  orders    Order[]
+  reviews   Review[]
+}
+
+/// One-time sign-in code. Only the latest code per email is kept; it is deleted once used.
+model LoginCode {
+  id        String   @id @default(cuid())
+  email     String
+  /// HMAC-SHA256 (APP_SECRET_KEY) of email + code; the code itself is never stored.
+  codeHash  String
+  /// Wrong guesses so far; the code stops working after LOGIN_CODE_MAX_ATTEMPTS.
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
 }
 
 model Session {
@@ -108,6 +125,7 @@ model App {
   media                Media[]
   orders               Order[]
   licenses             License[]
+  reviews              Review[]
 
   @@index([ownerId])
   @@index([status])
@@ -169,6 +187,9 @@ model Order {
   provider               String
   checkoutId             String      @unique
   providerOrderId        String?     @unique
+  /// Set when the buyer was signed in at checkout. Orders also show up in the account whose email matches.
+  userId                 String?
+  user                   User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   email                  String?
   amountCents            Int
   currency               String
@@ -181,6 +202,8 @@ model Order {
   license                License?
 
   @@index([appId, status])
+  @@index([userId])
+  @@index([email])
 }
 
 enum LicenseStatus {
@@ -216,6 +239,23 @@ model Activation {
   lastSeenAt DateTime @default(now())
 
   @@unique([licenseId, deviceId])
+}
+
+/// A buyer's rating of a product. One per account per product; only buyers with a paid order can post.
+model Review {
+  id        String   @id @default(cuid())
+  appId     String
+  app       App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// 1 to 5 stars.
+  rating    Int
+  body      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([appId, userId])
+  @@index([appId, createdAt])
 }
 
 /// Processed payment-provider webhook ids (idempotency).

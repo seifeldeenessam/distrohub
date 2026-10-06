@@ -65,6 +65,7 @@ async function uniqueSlug(name: string) {
 
 export async function createApp(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
+  if (!user.name) return { error: "Add your creator name in your account first." };
   const parsed = parseApp(formData);
   if ("error" in parsed) return { error: parsed.error };
   const keys = generateSigningKeyPair();
