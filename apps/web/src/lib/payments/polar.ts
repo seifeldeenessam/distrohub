@@ -16,7 +16,7 @@ export function polar() {
 
 /**
  * Each app maps to one one-time Polar product. Created lazily on first checkout and
- * re-priced whenever the developer changes the app's price.
+ * re-priced whenever the creator changes the app's price.
  */
 async function ensurePolarProduct(app: App) {
   const prices = [

@@ -13,7 +13,7 @@ export default async function AppOverviewPage({ params }: PageProps<"/dashboard/
     db.order.aggregate({
       where: { appId, status: "PAID" },
       _count: true,
-      _sum: { amountCents: true, developerEarningsCents: true },
+      _sum: { amountCents: true, creatorEarningsCents: true },
     }),
     db.license.count({ where: { appId, status: "ACTIVE" } }),
     db.activation.count({ where: { license: { appId } } }),
@@ -44,7 +44,7 @@ let license = LicenseManager(
       <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4">
         <Stat label="Orders" value={String(sales._count)} />
         <Stat label="Gross revenue" value={formatPrice(sales._sum.amountCents ?? 0)} />
-        <Stat label="Your earnings" value={formatPrice(sales._sum.developerEarningsCents ?? 0)} />
+        <Stat label="Your earnings" value={formatPrice(sales._sum.creatorEarningsCents ?? 0)} />
         <Stat label="Active devices" value={app.licenseKeys ? `${activations} on ${licenses} keys` : "No keys"} />
       </dl>
 

@@ -13,10 +13,10 @@ export default async function DashboardPage() {
     by: ["appId"],
     where: { app: { ownerId: user.id }, status: "PAID" },
     _count: true,
-    _sum: { developerEarningsCents: true },
+    _sum: { creatorEarningsCents: true },
   });
   const byApp = new Map(sales.map((s) => [s.appId, s]));
-  const totalEarnings = sales.reduce((sum, s) => sum + (s._sum.developerEarningsCents ?? 0), 0);
+  const totalEarnings = sales.reduce((sum, s) => sum + (s._sum.creatorEarningsCents ?? 0), 0);
   const totalSales = sales.reduce((sum, s) => sum + s._count, 0);
 
   return (
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
                     </p>
                   </div>
                   <div className="text-right text-sm">
-                    <p className="font-semibold">{formatPrice(s?._sum.developerEarningsCents ?? 0)}</p>
+                    <p className="font-semibold">{formatPrice(s?._sum.creatorEarningsCents ?? 0)}</p>
                     <p className="text-muted">{s?._count ?? 0} {s?._count === 1 ? "order" : "orders"}</p>
                   </div>
                 </Link>

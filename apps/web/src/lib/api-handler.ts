@@ -5,7 +5,7 @@ import { apiError } from "./http";
 
 type Ctx<P> = { params?: Promise<P> };
 
-/** Wraps a developer-API route: requires a valid secret key and, when `appId` is in the path, ownership of that app. */
+/** Wraps a creator-API route: requires a valid secret key and, when `appId` is in the path, ownership of that app. */
 export function withApiKey<P extends Record<string, string>>(
   handler: (req: Request, ctx: { userId: string; params: P }) => Promise<Response>,
 ) {

@@ -11,7 +11,7 @@ export default async function ApiKeysPage() {
     <div className="max-w-2xl">
       <h1 className="text-3xl font-bold">API keys</h1>
       <p className="mt-2 text-muted">
-        Secret keys for the developer API: upload releases from CI, look up and manage licenses from your own backend.
+        Secret keys for the creator API: upload releases from CI, look up and manage licenses from your own backend.
         Never put a secret key inside your app. The app only needs its App ID and public key.
       </p>
       <CreateKeyForm />

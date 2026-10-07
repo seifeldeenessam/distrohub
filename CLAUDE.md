@@ -13,7 +13,7 @@
 ## Project
 
 Distrohub is a store for any digital product (software, ebooks, courses, templates, fonts, audio…), free or paid:
-- **Developers** upload a file, set a price from $0, pick a product type and add screenshots or a demo video. Software can turn on license keys and add a license check to the app.
+- **Creators** upload a file, set a price from $0, pick a product type and add screenshots or a demo video. Software can turn on license keys and add a license check to the app.
 - **Buyers** click "$X Download" and pay through Polar, or "Download free" and enter an email. The download starts, and the download link (plus a license key, when the product uses keys) is emailed to them.
 - **The app** (license-key products only) activates the key against the license API and unlocks.
 - **Accounts** are passwordless (email one-time code) and shared by buyers and creators. Buyers see their orders, keys and devices at `/account` and review products they got.
@@ -21,7 +21,7 @@ Distrohub is a store for any digital product (software, ebooks, courses, templat
 Products are the `App` model internally (`appId`, `/apps/[slug]`, `/api/v1/apps` are stable public names); UI copy says "product".
 
 ```
-apps/web     Next.js 16 app: storefront, developer dashboard, REST API (Prisma 7 + PostgreSQL)
+apps/web     Next.js 16 app: storefront, creator dashboard, REST API (Prisma 7 + PostgreSQL)
 sdks/swift   DistroHubKit Swift package: LicenseManager + SwiftUI LicenseGate/PaywallView (macOS 12+)
 ```
 
@@ -74,7 +74,7 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
   - `login-codes.ts`: email one-time codes, the only way to sign in. No passwords anywhere.
   - `customer.ts`: `accountOrdersWhere(user)` (orders placed signed in, or sent to the account email) and `hasPurchased()`.
   - `reviews.ts`: rating summaries and review listing.
-  - `api-auth.ts` + `api-handler.ts`: `withApiKey()` wraps every developer-API route. It checks the `Bearer dh_sk_…` key and, when `appId` is in the path, that the caller owns the app.
+  - `api-auth.ts` + `api-handler.ts`: `withApiKey()` wraps every creator-API route. It checks the `Bearer dh_sk_…` key and, when `appId` is in the path, that the caller owns the app.
   - `crypto.ts`: tokens, scrypt passwords, AES-256-GCM, Ed25519 key generation and license-key generation.
   - `license-token.ts` + `licenses.ts`: activate, validate and deactivate, plus signed tokens.
   - `fulfillment.ts`: `fulfillOrder()` and `refundOrder()`, both idempotent. This is the only place an order becomes PAID and a license is issued.
@@ -84,9 +84,9 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
   - `email.ts`: Resend, or console output when `RESEND_API_KEY` is unset.
 - `app/(store)` is the public storefront, docs, mock checkout and purchase-success page.
 - `app/(auth)` has `/login`, used by buyers and creators (two-step form: email, then code; `authenticate` action). Creator sign-up is the same form in `register` mode, embedded only on `/docs` (`#get-started`); `/register` redirects there.
-- `app/(store)`: `/` (home), `/products` (filters: type, platform, price, sort), `/search` (products and creators), `/developers/[id]` (creator profile, 404 until they have a listed product). Listing queries go through `lib/catalog.ts` (`LISTED`, `findListed()`) and render with `components/product-list.tsx`. `app/(store)/account` is the buyer's account; `app/dashboard` is the developer console, gated on the account having a name. Mutations go through server actions in `dashboard/actions.ts`, and each action re-checks ownership.
+- `app/(store)`: `/` (home), `/products` (filters: type, platform, price, sort), `/search` (products and creators), `/creators/[id]` (creator profile, 404 until they have a listed product). Listing queries go through `lib/catalog.ts` (`LISTED`, `findListed()`) and render with `components/product-list.tsx`. `app/(store)/account` is the buyer's account; `app/dashboard` is the creator console, gated on the account having a name. Mutations go through server actions in `dashboard/actions.ts`, and each action re-checks ownership.
 - `app/api/v1/licenses/{activate,validate,deactivate}` is the **public** API called by shipped apps. It takes no secret, so it is rate limited per IP.
-- `app/api/v1/apps/**` and `app/api/v1/licenses/[licenseId]` form the **developer** API (secret key).
+- `app/api/v1/apps/**` and `app/api/v1/licenses/[licenseId]` form the **creator** API (secret key).
 - `app/api/checkout` creates a PENDING order and redirects to checkout. For a $0 product it skips the payments provider and calls `fulfillOrder()` straight away (provider `free`). `app/api/webhooks/polar` handles `order.paid` and `order.refunded`. `app/d/[token]` is the permanent download link and always serves the latest uploaded release.
 
 ## Invariants — don't break these
@@ -95,7 +95,7 @@ cp apps/web/.env.example apps/web/.env   # then set APP_SECRET_KEY=$(openssl ran
 - **Prices are 0 (free) or at least `MIN_PAID_PRICE_CENTS`** (Polar's $0.50 minimum). Free products never reach Polar, but their orders still go through `fulfillOrder()` so downloads, keys and receipts work the same way.
 - **License keys are per product** (`App.licenseKeys`). `fulfillOrder()` issues one only when it is on; an order without a license is valid. `platform` is set only for `kind = SOFTWARE`.
 - **License token format is a contract with `sdks/swift`**: `base64url(JSON payload) + "." + base64url(Ed25519 signature over the payload bytes)`, with payload `{ v, lid, app, dev, email, iat, exp }`. Each app's public key is the raw 32 bytes in **standard** base64, which is what CryptoKit expects. If you change this, update `sdks/swift/Sources/DistroHubKit/LicenseToken.swift` and the `/docs` page in the same commit.
-- **Public license API request fields** (`appId`, `licenseKey`, `deviceId`, `deviceName`) and error `code`s are also used by the Swift SDK and by developers' own apps. Treat them as a stable public API.
+- **Public license API request fields** (`appId`, `licenseKey`, `deviceId`, `deviceName`) and error `code`s are also used by the Swift SDK and by creators' own apps. Treat them as a stable public API.
 - **Secrets are never stored raw**:
   - App signing private keys are encrypted with `APP_SECRET_KEY`.
   - Session tokens and API keys are stored as SHA-256 hashes; an API key is shown once.
@@ -129,7 +129,7 @@ The rate limiter is in-memory (one instance only).
 
 ## Known gaps
 
-- **Developer payouts are manual.** Polar has no split payouts; per-order developer earnings are tracked after `PLATFORM_FEE_BPS`.
+- **Creator payouts are manual.** Polar has no split payouts; per-order creator earnings are tracked after `PLATFORM_FEE_BPS`.
 - No pay-what-you-want, no discounts, single currency (USD).
 - **Free claims aren't email-verified** when signed out: anyone can claim a $0 product (and its license key) with any address, rate limited per IP. Signed-in claims use the account email. Reviews still need the OTP-verified email, so a fake claim can't be used to review.
 - **No review moderation** or creator replies yet.

@@ -9,7 +9,7 @@ export function generateApiKey() {
   return { key, hash: sha256(key), prefix: key.slice(0, API_KEY_PREFIX.length + 4) };
 }
 
-/** Resolves the developer behind `Authorization: Bearer dh_sk_...`. */
+/** Resolves the creator behind `Authorization: Bearer dh_sk_...`. */
 export async function authenticateApiKey(req: Request) {
   const header = req.headers.get("authorization") ?? "";
   const [scheme, key] = header.split(" ");

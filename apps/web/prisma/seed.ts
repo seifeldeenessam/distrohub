@@ -1,4 +1,4 @@
-// Seeds a demo developer, two paid apps, a free ebook and a placeholder file for each, plus a few
+// Seeds a demo creator, two paid apps, a free ebook and a placeholder file for each, plus a few
 // buyers with orders and reviews, so the storefront and the full purchase flow work locally with
 // PAYMENTS_PROVIDER=mock.
 // Usage: pnpm db:seed   (sign in as demo@distrohub.dev or buyer@distrohub.dev; the code prints in the dev server log)
@@ -138,7 +138,7 @@ async function seedBuyers() {
           amountCents: app.priceCents,
           currency: app.currency,
           platformFeeCents: fee,
-          developerEarningsCents: app.priceCents - fee,
+          creatorEarningsCents: app.priceCents - fee,
           downloadToken: randomBytes(32).toString("base64url"),
           paidAt: new Date(),
         },

@@ -1,6 +1,6 @@
 const TINTS = ["#0e6e55", "#2c4a7a", "#7a3e2c", "#5b3f86", "#6b6a1f", "#1f6470", "#8a2f55"];
 
-/** App icon, or a monogram tile when the developer hasn't set one. */
+/** App icon, or a monogram tile when the creator hasn't set one. */
 export function AppIcon({ name, iconUrl, size = 56 }: { name: string; iconUrl?: string | null; size?: number }) {
   const radius = Math.round(size * 0.225);
   if (iconUrl) {

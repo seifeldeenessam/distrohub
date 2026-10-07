@@ -53,7 +53,7 @@ export function safeNext(next: unknown, fallback: string) {
     : fallback;
 }
 
-/** Loads an app only if it belongs to the signed-in developer. */
+/** Loads an app only if it belongs to the signed-in creator. */
 export async function requireOwnedApp(appId: string) {
   const user = await requireUser(`/dashboard/apps/${appId}`);
   const app = await db.app.findFirst({ where: { id: appId, ownerId: user.id } });

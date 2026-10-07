@@ -16,7 +16,7 @@ const COLUMNS = [
     links: [
       { href: "/docs", label: "Sell on Distrohub" },
       { href: "/docs#license-api", label: "License API" },
-      { href: "/docs#developer-api", label: "Developer API" },
+      { href: "/docs#creator-api", label: "Creator API" },
       { href: "/login", label: "Sign in" },
     ],
   },

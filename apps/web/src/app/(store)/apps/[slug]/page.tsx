@@ -126,7 +126,7 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               </>
             )}
             <dt className="text-muted">Creator</dt>
-            <dd><Link href={`/developers/${app.owner.id}`} className="underline">{app.owner.name}</Link></dd>
+            <dd><Link href={`/creators/${app.owner.id}`} className="underline">{app.owner.name}</Link></dd>
             {app.websiteUrl && (
               <>
                 <dt className="text-muted">Website</dt>

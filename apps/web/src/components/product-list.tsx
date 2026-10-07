@@ -6,7 +6,7 @@ import { PLATFORM_LABEL } from "@/components/platform";
 import { KIND_LABEL } from "@/components/product-kind";
 import { Stars, formatRating } from "@/components/stars";
 
-/** Store listing rows. `showCreator` is off on a developer's own page, where it would repeat. */
+/** Store listing rows. `showCreator` is off on a creator's own page, where it would repeat. */
 export function ProductList({ products, showCreator = true }: { products: ListedProduct[]; showCreator?: boolean }) {
   return (
     <ul className="border-t border-line">

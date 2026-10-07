@@ -3,7 +3,7 @@ import { env } from "@/lib/env";
 import { getCurrentUser } from "@/lib/auth";
 import { AuthForm } from "@/app/(auth)/auth-form";
 
-export const metadata = { title: "Developer docs" };
+export const metadata = { title: "Creator docs" };
 
 function Code({ children, lang }: { children: string; lang?: string }) {
   return (
@@ -31,7 +31,7 @@ export default async function DocsPage() {
           <li><a href="#swift" className="hover:text-ink">Swift package</a></li>
           <li><a href="#license-api" className="hover:text-ink">License API</a></li>
           <li><a href="#tokens" className="hover:text-ink">Offline tokens</a></li>
-          <li><a href="#developer-api" className="hover:text-ink">Developer API</a></li>
+          <li><a href="#creator-api" className="hover:text-ink">Creator API</a></li>
           <li><a href="#ci" className="hover:text-ink">Upload from CI</a></li>
         </ul>
       </nav>
@@ -167,7 +167,7 @@ struct MyApp: App {
   "email": "ada@example.com", "iat": 1791288000, "exp": 1793880000 }`}</Code>
         <p>Tokens last 30 days. Refresh with <code>validate</code> whenever the app is online.</p>
 
-        <H2 id="developer-api">Developer API</H2>
+        <H2 id="creator-api">Creator API</H2>
         <p className="mt-4">
           Server-to-server only. Authenticate with a secret key from <Link href="/dashboard/api-keys" className="underline">API keys</Link>:
           <code> Authorization: Bearer dh_sk_...</code>

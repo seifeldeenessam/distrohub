@@ -49,7 +49,7 @@ model Session {
   @@index([userId])
 }
 
-/// Secret key for the developer REST API (server-to-server only, never ship it in an app binary).
+/// Secret key for the creator REST API (server-to-server only, never ship it in an app binary).
 model ApiKey {
   id         String    @id @default(cuid())
   userId     String
@@ -194,7 +194,7 @@ model Order {
   amountCents            Int
   currency               String
   platformFeeCents       Int         @default(0)
-  developerEarningsCents Int         @default(0)
+  creatorEarningsCents Int         @default(0)
   /// Unguessable token used for the download link in the receipt email.
   downloadToken          String      @unique
   paidAt                 DateTime?

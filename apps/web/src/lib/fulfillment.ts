@@ -42,7 +42,7 @@ export async function fulfillOrder(input: {
         amountCents: input.amountCents,
         currency: input.currency,
         platformFeeCents,
-        developerEarningsCents: input.amountCents - platformFeeCents,
+        creatorEarningsCents: input.amountCents - platformFeeCents,
       },
     });
     if (order.app.licenseKeys) {

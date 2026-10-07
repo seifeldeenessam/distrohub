@@ -1,5 +1,5 @@
 /** Monogram for a creator on the brand gradient (creators have no profile photo). */
-export function DeveloperAvatar({ name, size = 56 }: { name: string; size?: number }) {
+export function CreatorAvatar({ name, size = 56 }: { name: string; size?: number }) {
   return (
     <div
       aria-hidden
