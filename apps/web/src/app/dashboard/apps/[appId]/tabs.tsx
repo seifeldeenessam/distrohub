@@ -1,34 +1,29 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { href: "", label: "Overview" },
-  { href: "/releases", label: "Files" },
-  { href: "/media", label: "Media" },
-  { href: "/licenses", label: "Licenses" },
-  { href: "/settings", label: "Settings" },
+	{ href: '', label: 'Overview' },
+	{ href: '/releases', label: 'Files' },
+	{ href: '/media', label: 'Media' },
+	{ href: '/licenses', label: 'Licenses' },
+	{ href: '/settings', label: 'Settings' }
 ];
 
 export function Tabs({ base, licenses }: { base: string; licenses: boolean }) {
-  const pathname = usePathname();
-  return (
-    <nav className="mt-8 flex gap-6 overflow-x-auto border-b border-line text-sm font-medium">
-      {TABS.filter((tab) => licenses || tab.href !== "/licenses" || pathname === base + tab.href).map((tab) => {
-        const href = base + tab.href;
-        const active = pathname === href;
-        return (
-          <Link
-            key={tab.label}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={`-mb-px border-b-2 pb-3 ${active ? "border-accent text-ink" : "border-transparent text-muted hover:text-ink"}`}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
+	const pathname = usePathname();
+	return (
+		<nav className="border-line mt-8 flex gap-6 overflow-x-auto border-b text-sm font-medium">
+			{TABS.filter((tab) => licenses || tab.href !== '/licenses' || pathname === base + tab.href).map((tab) => {
+				const href = base + tab.href;
+				const active = pathname === href;
+				return (
+					<Link key={tab.label} href={href} aria-current={active ? 'page' : undefined} className={`-mb-px border-b-2 pb-3 ${active ? 'border-accent text-ink' : 'text-muted hover:text-ink border-transparent'}`}>
+						{tab.label}
+					</Link>
+				);
+			})}
+		</nav>
+	);
 }

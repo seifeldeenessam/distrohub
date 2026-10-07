@@ -8,7 +8,7 @@ export const metadata = { title: 'Creator docs' };
 function Code({ children, lang }: { children: string; lang?: string }) {
 	return (
 		<div className="panel my-4 overflow-hidden">
-			{lang && <div className="border-b border-line px-4 py-1.5 text-xs text-muted">{lang}</div>}
+			{lang && <div className="border-line text-muted border-b px-4 py-1.5 text-xs">{lang}</div>}
 			<pre className="overflow-x-auto p-4 font-mono text-[0.8125rem] leading-relaxed">{children}</pre>
 		</div>
 	);
@@ -28,7 +28,7 @@ export default async function DocsPage() {
 	return (
 		<div className="grid gap-12 pt-12 md:grid-cols-[180px_1fr]">
 			<nav className="hidden text-sm md:block">
-				<ul className="sticky top-8 space-y-2 text-muted">
+				<ul className="text-muted sticky top-8 space-y-2">
 					<li>
 						<a href="#get-started" className="hover:text-ink">
 							Get started
@@ -72,30 +72,31 @@ export default async function DocsPage() {
 				</ul>
 			</nav>
 
-			<article className="min-w-0 max-w-prose text-[0.9375rem] leading-relaxed">
+			<article className="max-w-prose min-w-0 text-[0.9375rem] leading-relaxed">
 				<h1 className="text-4xl font-bold">Sell on Distrohub</h1>
-				<p className="mt-4 text-lg text-muted">
-					Sell any digital product: apps, ebooks, courses, templates, fonts, audio. You upload the file and set a price, or make it free. Distrohub handles the store page, payment, the
-					download and the receipt email. Selling software? Turn on license keys and add the license check to your app.
+				<p className="text-muted mt-4 text-lg">
+					Sell any digital product: apps, ebooks, courses, templates, fonts, audio. You upload the file and set a price, or make it free. Distrohub handles the store page, payment, the download and the receipt email. Selling software? Turn on
+					license keys and add the license check to your app.
 				</p>
 
 				<section id="get-started" className="panel mt-8 scroll-mt-8 p-5 sm:p-6">
-					{user ?
+					{user ? (
 						<>
 							<h2 className="text-xl font-bold">You&apos;re signed in</h2>
-							<p className="mt-1 text-muted">Create your first product from the dashboard.</p>
+							<p className="text-muted mt-1">Create your first product from the dashboard.</p>
 							<p className="mt-4">
 								<Link href="/dashboard" className="btn btn-primary">
 									Open the dashboard
 								</Link>
 							</p>
 						</>
-					:	<div>
+					) : (
+						<div>
 							<h2 className="text-xl font-bold">Create a creator account</h2>
-							<p className="mt-1 mb-5 text-muted">Upload a file, set a price or make it free, and publish.</p>
+							<p className="text-muted mt-1 mb-5">Upload a file, set a price or make it free, and publish.</p>
 							<AuthForm mode="register" />
 						</div>
-					}
+					)}
 				</section>
 
 				<H2 id="flow">How a sale works</H2>
@@ -109,10 +110,7 @@ export default async function DocsPage() {
 					</li>
 					<li>Distrohub returns a signed token. The app stores it and unlocks. It works offline until the token expires, then refreshes it quietly.</li>
 				</ol>
-				<p className="mt-4">
-					Without license keys (the default for anything that isn&apos;t software), steps 3 and 4 don&apos;t apply: the buyer gets the download and an email with a permanent link to the
-					newest version.
-				</p>
+				<p className="mt-4">Without license keys (the default for anything that isn&apos;t software), steps 3 and 4 don&apos;t apply: the buyer gets the download and an email with a permanent link to the newest version.</p>
 
 				<H2 id="pricing">Pricing and free products</H2>
 				<ul className="mt-4 list-disc space-y-2 pl-5">
@@ -120,8 +118,7 @@ export default async function DocsPage() {
 						Set any price from <strong>$0</strong>. Paid prices start at $0.50, the lowest amount Polar can charge.
 					</li>
 					<li>
-						At $0 the button reads <strong>Download free</strong>. The buyer enters an email and gets the download right away, with no checkout. If license keys are on, they get a key too,
-						and it works exactly like a paid one.
+						At $0 the button reads <strong>Download free</strong>. The buyer enters an email and gets the download right away, with no checkout. If license keys are on, they get a key too, and it works exactly like a paid one.
 					</li>
 					<li>You can change the price at any time. Existing buyers keep their downloads and keys.</li>
 				</ul>
@@ -150,15 +147,12 @@ struct MyApp: App {
     }
 }`}</Code>
 				<p>
-					<code>LicenseGate</code> shows a paywall with a key field and a buy button until the app is activated. For a custom paywall, use <code>license.state</code>,{' '}
-					<code>license.activate(key:)</code> and <code>license.deactivate()</code> directly.
+					<code>LicenseGate</code> shows a paywall with a key field and a buy button until the app is activated. For a custom paywall, use <code>license.state</code>, <code>license.activate(key:)</code> and <code>license.deactivate()</code>{' '}
+					directly.
 				</p>
 
 				<H2 id="license-api">License API</H2>
-				<p className="mt-4">
-					Called from inside your app. No secret is needed: requests are identified by App ID and license key. Send a stable, anonymous device ID (the Swift package hashes the hardware
-					UUID).
-				</p>
+				<p className="mt-4">Called from inside your app. No secret is needed: requests are identified by App ID and license key. Send a stable, anonymous device ID (the Swift package hashes the hardware UUID).</p>
 				<h3 className="mt-8 text-lg font-semibold">Activate a device</h3>
 				<Code lang="Shell">{`curl -X POST ${base}/api/v1/licenses/activate \\
   -H "Content-Type: application/json" \\
@@ -182,8 +176,8 @@ struct MyApp: App {
 				<p>Activating a device that is already active just refreshes its token.</p>
 				<h3 className="mt-8 text-lg font-semibold">Validate and deactivate</h3>
 				<p className="mt-2">
-					<code>POST /api/v1/licenses/validate</code> takes the same body and returns a fresh token if the device is still activated. Call it on launch when online.{' '}
-					<code>POST /api/v1/licenses/deactivate</code> frees the device slot, for a &ldquo;Sign out of this Mac&rdquo; button.
+					<code>POST /api/v1/licenses/validate</code> takes the same body and returns a fresh token if the device is still activated. Call it on launch when online. <code>POST /api/v1/licenses/deactivate</code> frees the device slot, for a
+					&ldquo;Sign out of this Mac&rdquo; button.
 				</p>
 				<h3 className="mt-8 text-lg font-semibold">Errors</h3>
 				<Code lang="4xx">{`{ "error": { "code": "activation_limit_reached", "message": "..." } }`}</Code>
@@ -210,8 +204,8 @@ struct MyApp: App {
 
 				<H2 id="tokens">Offline tokens</H2>
 				<p className="mt-4">
-					The token is <code>base64url(payload) + &quot;.&quot; + base64url(signature)</code>. The signature is Ed25519 over the raw payload bytes, made with your app&apos;s private key.
-					Verify it with the public key from the dashboard, then check that
+					The token is <code>base64url(payload) + &quot;.&quot; + base64url(signature)</code>. The signature is Ed25519 over the raw payload bytes, made with your app&apos;s private key. Verify it with the public key from the dashboard, then
+					check that
 					<code> app</code> and <code>dev</code> match and <code>exp</code> is in the future.
 				</p>
 				<Code lang="Payload">{`{ "v": 1, "lid": "cm...", "app": "YOUR_APP_ID", "dev": "a1b2c3...",

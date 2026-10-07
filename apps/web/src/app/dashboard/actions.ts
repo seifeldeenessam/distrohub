@@ -1,213 +1,218 @@
-"use server";
+'use server';
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { z } from "zod";
-import { db } from "@/lib/db";
-import { requireOwnedApp, requireUser } from "@/lib/auth";
-import { generateApiKey } from "@/lib/api-auth";
-import { generateLicenseKey, generateSigningKeyPair, randomToken } from "@/lib/crypto";
-import { sendLicenseEmail } from "@/lib/fulfillment";
-import { completeRelease, createRelease, latestRelease, releaseInput } from "@/lib/releases";
-import { completeMedia, createMedia, mediaInput, moveMedia as reorderMedia } from "@/lib/media";
-import { formatPrice, MIN_PAID_PRICE_CENTS } from "@/lib/money";
-import { slugify } from "@/lib/slug";
-import { PRODUCT_KINDS } from "@/components/product-kind";
+import { PRODUCT_KINDS } from '@/components/product-kind';
+import { generateApiKey } from '@/lib/api-auth';
+import { requireOwnedApp, requireUser } from '@/lib/auth';
+import { generateLicenseKey, generateSigningKeyPair, randomToken } from '@/lib/crypto';
+import { db } from '@/lib/db';
+import { sendLicenseEmail } from '@/lib/fulfillment';
+import { completeMedia, createMedia, mediaInput, moveMedia as reorderMedia } from '@/lib/media';
+import { formatPrice, MIN_PAID_PRICE_CENTS } from '@/lib/money';
+import { completeRelease, createRelease, latestRelease, releaseInput } from '@/lib/releases';
+import { slugify } from '@/lib/slug';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
 
 export type FormState = { error?: string; ok?: string };
 
 const appFields = z.object({
-  name: z.string().trim().min(1, "Give your product a name.").max(60),
-  tagline: z.string().trim().min(1, "Add a one-line tagline.").max(120),
-  description: z.string().trim().min(1, "Describe what buyers get.").max(10_000),
-  kind: z.enum(PRODUCT_KINDS),
-  price: z.coerce
-    .number("Enter a price, or 0 to make it free.")
-    .min(0, "Prices can't be negative. Enter 0 to make it free.")
-    .max(10_000, "The maximum price is $10,000.")
-    .refine(
-      (p) => p === 0 || Math.round(p * 100) >= MIN_PAID_PRICE_CENTS,
-      `Paid prices start at ${formatPrice(MIN_PAID_PRICE_CENTS)}. Enter 0 to make it free.`,
-    ),
-  platform: z.enum(["MACOS", "WINDOWS", "LINUX"]).optional(),
-  licenseKeys: z.literal("on").optional(),
-  maxActivations: z.coerce.number().int().min(1).max(100).optional(),
-  iconUrl: z.union([z.url(), z.literal("")]).optional(),
-  websiteUrl: z.union([z.url(), z.literal("")]).optional(),
+	name: z.string().trim().min(1, 'Give your product a name.').max(60),
+	tagline: z.string().trim().min(1, 'Add a one-line tagline.').max(120),
+	description: z.string().trim().min(1, 'Describe what buyers get.').max(10_000),
+	kind: z.enum(PRODUCT_KINDS),
+	price: z.coerce
+		.number('Enter a price, or 0 to make it free.')
+		.min(0, "Prices can't be negative. Enter 0 to make it free.")
+		.max(10_000, 'The maximum price is $10,000.')
+		.refine((p) => p === 0 || Math.round(p * 100) >= MIN_PAID_PRICE_CENTS, `Paid prices start at ${formatPrice(MIN_PAID_PRICE_CENTS)}. Enter 0 to make it free.`),
+	platform: z.enum(['MACOS', 'WINDOWS', 'LINUX']).optional(),
+	licenseKeys: z.literal('on').optional(),
+	maxActivations: z.coerce.number().int().min(1).max(100).optional(),
+	iconUrl: z.union([z.url(), z.literal('')]).optional(),
+	websiteUrl: z.union([z.url(), z.literal('')]).optional()
 });
 
 function parseApp(formData: FormData) {
-  const parsed = appFields.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0].message } as const;
-  const { price, iconUrl, websiteUrl, platform, licenseKeys, maxActivations, ...rest } = parsed.data;
-  if (rest.kind === "SOFTWARE" && !platform) return { error: "Choose the platform the software runs on." } as const;
-  return {
-    data: {
-      ...rest,
-      priceCents: Math.round(price * 100),
-      platform: rest.kind === "SOFTWARE" ? platform! : null,
-      licenseKeys: licenseKeys === "on",
-      ...(maxActivations ? { maxActivations } : {}),
-      iconUrl: iconUrl || null,
-      websiteUrl: websiteUrl || null,
-    },
-  } as const;
+	const parsed = appFields.safeParse(Object.fromEntries(formData));
+	if (!parsed.success) return { error: parsed.error.issues[0].message } as const;
+	const { price, iconUrl, websiteUrl, platform, licenseKeys, maxActivations, ...rest } = parsed.data;
+	if (rest.kind === 'SOFTWARE' && !platform) return { error: 'Choose the platform the software runs on.' } as const;
+	return {
+		data: {
+			...rest,
+			priceCents: Math.round(price * 100),
+			platform: rest.kind === 'SOFTWARE' ? platform! : null,
+			licenseKeys: licenseKeys === 'on',
+			...(maxActivations ? { maxActivations } : {}),
+			iconUrl: iconUrl || null,
+			websiteUrl: websiteUrl || null
+		}
+	} as const;
 }
 
 async function uniqueSlug(name: string) {
-  const base = slugify(name) || "product";
-  for (let i = 0; i < 5; i++) {
-    const slug = i === 0 ? base : `${base}-${randomToken(3).toLowerCase().replace(/[^a-z0-9]/g, "")}`;
-    if (!(await db.app.findUnique({ where: { slug } }))) return slug;
-  }
-  return `${base}-${Date.now().toString(36)}`;
+	const base = slugify(name) || 'product';
+	for (let i = 0; i < 5; i++) {
+		const slug =
+			i === 0
+				? base
+				: `${base}-${randomToken(3)
+						.toLowerCase()
+						.replace(/[^a-z0-9]/g, '')}`;
+		if (!(await db.app.findUnique({ where: { slug } }))) return slug;
+	}
+	return `${base}-${Date.now().toString(36)}`;
 }
 
 export async function createApp(_prev: FormState, formData: FormData): Promise<FormState> {
-  const user = await requireUser();
-  if (!user.name) return { error: "Add your creator name in your account first." };
-  const parsed = parseApp(formData);
-  if ("error" in parsed) return { error: parsed.error };
-  const keys = generateSigningKeyPair();
-  const app = await db.app.create({
-    data: {
-      ...parsed.data,
-      ownerId: user.id,
-      slug: await uniqueSlug(parsed.data.name),
-      signingPublicKey: keys.publicKey,
-      signingPrivateKeyEnc: keys.privateKeyEnc,
-    },
-  });
-  redirect(`/dashboard/apps/${app.id}/releases`);
+	const user = await requireUser();
+	if (!user.name) return { error: 'Add your creator name in your account first.' };
+	const parsed = parseApp(formData);
+	if ('error' in parsed) return { error: parsed.error };
+	const keys = generateSigningKeyPair();
+	const app = await db.app.create({
+		data: {
+			...parsed.data,
+			ownerId: user.id,
+			slug: await uniqueSlug(parsed.data.name),
+			signingPublicKey: keys.publicKey,
+			signingPrivateKeyEnc: keys.privateKeyEnc
+		}
+	});
+	redirect(`/dashboard/apps/${app.id}/releases`);
 }
 
 export async function updateApp(appId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  await requireOwnedApp(appId);
-  const parsed = parseApp(formData);
-  if ("error" in parsed) return { error: parsed.error };
-  await db.app.update({ where: { id: appId }, data: parsed.data });
-  revalidatePath(`/dashboard/apps/${appId}`, "layout");
-  return { ok: "Changes saved." };
+	await requireOwnedApp(appId);
+	const parsed = parseApp(formData);
+	if ('error' in parsed) return { error: parsed.error };
+	await db.app.update({ where: { id: appId }, data: parsed.data });
+	revalidatePath(`/dashboard/apps/${appId}`, 'layout');
+	return { ok: 'Changes saved.' };
 }
 
 export async function setPublished(appId: string, publish: boolean): Promise<FormState> {
-  await requireOwnedApp(appId);
-  if (publish && !(await latestRelease(appId))) return { error: "Upload a file before publishing." };
-  await db.app.update({ where: { id: appId }, data: { status: publish ? "PUBLISHED" : "DRAFT" } });
-  revalidatePath(`/dashboard/apps/${appId}`, "layout");
-  return { ok: publish ? "Published." : "Unpublished." };
+	await requireOwnedApp(appId);
+	if (publish && !(await latestRelease(appId))) return { error: 'Upload a file before publishing.' };
+	await db.app.update({ where: { id: appId }, data: { status: publish ? 'PUBLISHED' : 'DRAFT' } });
+	revalidatePath(`/dashboard/apps/${appId}`, 'layout');
+	return { ok: publish ? 'Published.' : 'Unpublished.' };
 }
 
 export async function startReleaseUpload(appId: string, input: unknown) {
-  await requireOwnedApp(appId);
-  const parsed = releaseInput.safeParse(input);
-  if (!parsed.success) return { ok: false as const, message: parsed.error.issues[0].message };
-  const result = await createRelease(appId, parsed.data);
-  if (!result.ok) return result;
-  return { ok: true as const, releaseId: result.release.id, uploadUrl: result.uploadUrl };
+	await requireOwnedApp(appId);
+	const parsed = releaseInput.safeParse(input);
+	if (!parsed.success) return { ok: false as const, message: parsed.error.issues[0].message };
+	const result = await createRelease(appId, parsed.data);
+	if (!result.ok) return result;
+	return { ok: true as const, releaseId: result.release.id, uploadUrl: result.uploadUrl };
 }
 
 export async function finishReleaseUpload(appId: string, releaseId: string) {
-  await requireOwnedApp(appId);
-  const result = await completeRelease(appId, releaseId);
-  revalidatePath(`/dashboard/apps/${appId}`, "layout");
-  return result.ok ? { ok: true as const } : result;
+	await requireOwnedApp(appId);
+	const result = await completeRelease(appId, releaseId);
+	revalidatePath(`/dashboard/apps/${appId}`, 'layout');
+	return result.ok ? { ok: true as const } : result;
 }
 
 export async function deleteRelease(appId: string, releaseId: string) {
-  await requireOwnedApp(appId);
-  await db.release.deleteMany({ where: { id: releaseId, appId } });
-  revalidatePath(`/dashboard/apps/${appId}`, "layout");
+	await requireOwnedApp(appId);
+	await db.release.deleteMany({ where: { id: releaseId, appId } });
+	revalidatePath(`/dashboard/apps/${appId}`, 'layout');
 }
 
 export async function startMediaUpload(appId: string, input: unknown) {
-  await requireOwnedApp(appId);
-  const parsed = mediaInput.safeParse(input);
-  if (!parsed.success) return { ok: false as const, message: parsed.error.issues[0].message };
-  const result = await createMedia(appId, parsed.data);
-  if (!result.ok) return result;
-  return { ok: true as const, mediaId: result.media.id, uploadUrl: result.uploadUrl };
+	await requireOwnedApp(appId);
+	const parsed = mediaInput.safeParse(input);
+	if (!parsed.success) return { ok: false as const, message: parsed.error.issues[0].message };
+	const result = await createMedia(appId, parsed.data);
+	if (!result.ok) return result;
+	return { ok: true as const, mediaId: result.media.id, uploadUrl: result.uploadUrl };
 }
 
 export async function finishMediaUpload(appId: string, mediaId: string) {
-  await requireOwnedApp(appId);
-  const result = await completeMedia(appId, mediaId);
-  revalidatePath(`/dashboard/apps/${appId}/media`);
-  return result.ok ? { ok: true as const } : result;
+	await requireOwnedApp(appId);
+	const result = await completeMedia(appId, mediaId);
+	revalidatePath(`/dashboard/apps/${appId}/media`);
+	return result.ok ? { ok: true as const } : result;
 }
 
 export async function moveMedia(appId: string, mediaId: string, direction: -1 | 1) {
-  await requireOwnedApp(appId);
-  await reorderMedia(appId, mediaId, direction === -1 ? -1 : 1);
-  revalidatePath(`/dashboard/apps/${appId}/media`);
+	await requireOwnedApp(appId);
+	await reorderMedia(appId, mediaId, direction === -1 ? -1 : 1);
+	revalidatePath(`/dashboard/apps/${appId}/media`);
 }
 
 export async function deleteMedia(appId: string, mediaId: string) {
-  await requireOwnedApp(appId);
-  await db.media.deleteMany({ where: { id: mediaId, appId } });
-  revalidatePath(`/dashboard/apps/${appId}/media`);
+	await requireOwnedApp(appId);
+	await db.media.deleteMany({ where: { id: mediaId, appId } });
+	revalidatePath(`/dashboard/apps/${appId}/media`);
 }
 
 async function ownedLicense(licenseId: string) {
-  const user = await requireUser();
-  const license = await db.license.findFirst({ where: { id: licenseId, app: { ownerId: user.id } } });
-  if (!license) throw new Error("License not found");
-  return license;
+	const user = await requireUser();
+	const license = await db.license.findFirst({ where: { id: licenseId, app: { ownerId: user.id } } });
+	if (!license) throw new Error('License not found');
+	return license;
 }
 
-export async function setLicenseStatus(licenseId: string, status: "ACTIVE" | "REVOKED") {
-  const license = await ownedLicense(licenseId);
-  await db.license.update({ where: { id: license.id }, data: { status } });
-  revalidatePath(`/dashboard/apps/${license.appId}/licenses`);
+export async function setLicenseStatus(licenseId: string, status: 'ACTIVE' | 'REVOKED') {
+	const license = await ownedLicense(licenseId);
+	await db.license.update({ where: { id: license.id }, data: { status } });
+	revalidatePath(`/dashboard/apps/${license.appId}/licenses`);
 }
 
 export async function resetActivations(licenseId: string) {
-  const license = await ownedLicense(licenseId);
-  await db.activation.deleteMany({ where: { licenseId: license.id } });
-  revalidatePath(`/dashboard/apps/${license.appId}/licenses`);
+	const license = await ownedLicense(licenseId);
+	await db.activation.deleteMany({ where: { licenseId: license.id } });
+	revalidatePath(`/dashboard/apps/${license.appId}/licenses`);
 }
 
 export async function resendLicense(licenseId: string) {
-  const license = await ownedLicense(licenseId);
-  await sendLicenseEmail(license.id);
+	const license = await ownedLicense(licenseId);
+	await sendLicenseEmail(license.id);
 }
 
 const issueSchema = z.object({
-  email: z.email("Enter a valid email address."),
-  note: z.string().max(500).optional(),
+	email: z.email('Enter a valid email address.'),
+	note: z.string().max(500).optional()
 });
 
 export async function issueLicense(appId: string, _prev: FormState, formData: FormData): Promise<FormState> {
-  const { app } = await requireOwnedApp(appId);
-  const parsed = issueSchema.safeParse(Object.fromEntries(formData));
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const license = await db.license.create({
-    data: {
-      key: generateLicenseKey(),
-      appId,
-      email: parsed.data.email,
-      note: parsed.data.note || null,
-      maxActivations: app.maxActivations,
-    },
-  });
-  if (formData.get("send") === "on") await sendLicenseEmail(license.id);
-  revalidatePath(`/dashboard/apps/${appId}/licenses`);
-  return { ok: `Issued ${license.key}` };
+	const { app } = await requireOwnedApp(appId);
+	const parsed = issueSchema.safeParse(Object.fromEntries(formData));
+	if (!parsed.success) return { error: parsed.error.issues[0].message };
+	const license = await db.license.create({
+		data: {
+			key: generateLicenseKey(),
+			appId,
+			email: parsed.data.email,
+			note: parsed.data.note || null,
+			maxActivations: app.maxActivations
+		}
+	});
+	if (formData.get('send') === 'on') await sendLicenseEmail(license.id);
+	revalidatePath(`/dashboard/apps/${appId}/licenses`);
+	return { ok: `Issued ${license.key}` };
 }
 
 export type ApiKeyState = FormState & { key?: string };
 
 export async function createApiKey(_prev: ApiKeyState, formData: FormData): Promise<ApiKeyState> {
-  const user = await requireUser();
-  const name = String(formData.get("name") ?? "").trim().slice(0, 60) || "Untitled key";
-  const { key, hash, prefix } = generateApiKey();
-  await db.apiKey.create({ data: { userId: user.id, name, hash, prefix } });
-  revalidatePath("/dashboard/api-keys");
-  return { key };
+	const user = await requireUser();
+	const name =
+		String(formData.get('name') ?? '')
+			.trim()
+			.slice(0, 60) || 'Untitled key';
+	const { key, hash, prefix } = generateApiKey();
+	await db.apiKey.create({ data: { userId: user.id, name, hash, prefix } });
+	revalidatePath('/dashboard/api-keys');
+	return { key };
 }
 
 export async function revokeApiKey(id: string) {
-  const user = await requireUser();
-  await db.apiKey.updateMany({ where: { id, userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
-  revalidatePath("/dashboard/api-keys");
+	const user = await requireUser();
+	await db.apiKey.updateMany({ where: { id, userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
+	revalidatePath('/dashboard/api-keys');
 }
