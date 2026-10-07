@@ -27,7 +27,7 @@ const ERRORS: Record<string, string> = {
 async function getApp(slug: string) {
   return db.app.findUnique({
     where: { slug },
-    include: { owner: { select: { name: true } } },
+    include: { owner: { select: { id: true, name: true } } },
   });
 }
 
@@ -126,7 +126,13 @@ export default async function AppPage({ params, searchParams }: PageProps<"/apps
               </>
             )}
             <dt className="text-muted">Creator</dt>
-            <dd>{app.websiteUrl ? <a href={app.websiteUrl} className="underline" rel="noopener">{app.owner.name}</a> : app.owner.name}</dd>
+            <dd><Link href={`/developers/${app.owner.id}`} className="underline">{app.owner.name}</Link></dd>
+            {app.websiteUrl && (
+              <>
+                <dt className="text-muted">Website</dt>
+                <dd className="truncate"><a href={app.websiteUrl} className="underline" rel="noopener">{new URL(app.websiteUrl).host}</a></dd>
+              </>
+            )}
           </dl>
         </div>
       </aside>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { env } from "@/lib/env";
+import { getCurrentUser } from "@/lib/auth";
+import { AuthForm } from "@/app/(auth)/auth-form";
 
 export const metadata = { title: "Developer docs" };
 
@@ -16,12 +18,14 @@ function H2({ id, children }: { id: string; children: React.ReactNode }) {
   return <h2 id={id} className="mt-16 scroll-mt-8 text-2xl font-bold">{children}</h2>;
 }
 
-export default function DocsPage() {
+export default async function DocsPage() {
   const base = env.appUrl;
+  const user = await getCurrentUser();
   return (
     <div className="grid gap-12 pt-12 md:grid-cols-[180px_1fr]">
       <nav className="hidden text-sm md:block">
         <ul className="sticky top-8 space-y-2 text-muted">
+          <li><a href="#get-started" className="hover:text-ink">Get started</a></li>
           <li><a href="#flow" className="hover:text-ink">How a sale works</a></li>
           <li><a href="#pricing" className="hover:text-ink">Pricing and free</a></li>
           <li><a href="#swift" className="hover:text-ink">Swift package</a></li>
@@ -39,7 +43,25 @@ export default function DocsPage() {
           or make it free. Distrohub handles the store page, payment, the download and the receipt email. Selling
           software? Turn on license keys and add the license check to your app.
         </p>
-        <p className="mt-4"><Link href="/register" className="btn btn-primary">Create a developer account</Link></p>
+
+        <section id="get-started" className="panel mt-8 scroll-mt-8 p-5 sm:p-6">
+          {user ? (
+            <>
+              <h2 className="text-xl font-bold">You&apos;re signed in</h2>
+              <p className="mt-1 text-muted">Create your first product from the dashboard.</p>
+              <p className="mt-4"><Link href="/dashboard" className="btn btn-primary">Open the dashboard</Link></p>
+            </>
+          ) : (
+            <div className="max-w-sm">
+              <h2 className="text-xl font-bold">Create a creator account</h2>
+              <p className="mt-1 mb-5 text-muted">Upload a file, set a price or make it free, and publish.</p>
+              <AuthForm mode="register" />
+              <p className="mt-4 text-sm text-muted">
+                Already have an account? <Link href="/login?next=/dashboard" className="font-medium text-ink underline">Sign in</Link>
+              </p>
+            </div>
+          )}
+        </section>
 
         <H2 id="flow">How a sale works</H2>
         <ol className="mt-4 list-decimal space-y-2 pl-5">

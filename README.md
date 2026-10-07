@@ -97,7 +97,7 @@ Full reference with examples at `/docs` in the running app.
 
 ## Accounts and reviews
 
-- **Sign-in is passwordless.** `/login` emails a 6-digit code (10 minutes, single use, 5 wrong guesses, stored as an HMAC). An unknown email gets an account once its code is verified; `/register` does the same and asks for a creator name. Locally the code prints in the dev server log.
+- **Sign-in is passwordless.** `/login` emails a 6-digit code (10 minutes, single use, 5 wrong guesses, stored as an HMAC). An unknown email gets an account once its code is verified; the creator sign-up form on `/docs` does the same and asks for a creator name. Locally the code prints in the dev server log.
 - **Buyers and creators share one account.** `/account` lists every order for the account's email (including ones placed before signing up) with download links, license keys and activated devices, which the buyer can sign out remotely.
 - **Reviews** (1 to 5 stars, optional text) can be posted by verified buyers only: a paid, not refunded, order for the product. One review per account per product; creators can't review their own.
 
