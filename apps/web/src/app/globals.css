@@ -153,6 +153,20 @@ h3 {
 		line-height: 1.65;
 	}
 
+	/* Price on a store card: a small tag with a punched notch on each end. */
+	.price-tag {
+		display: inline-block;
+		padding: 0.25rem 0.875rem;
+		border-radius: 0.375rem;
+		font-size: 0.875rem;
+		font-weight: 700;
+		line-height: 1.25rem;
+		font-variant-numeric: tabular-nums;
+		mask:
+			radial-gradient(circle at 0 50%, #0000 4px, #000 4.5px) left / 51% 100% no-repeat,
+			radial-gradient(circle at 100% 50%, #0000 4px, #000 4.5px) right / 51% 100% no-repeat;
+	}
+
 	/* The license "ticket": a stub with punched notches on both sides. */
 	.ticket {
 		position: relative;

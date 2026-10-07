@@ -29,10 +29,12 @@ export async function findListed(args: {
       priceCents: true,
       currency: true,
       owner: { select: { id: true, name: true } },
+      // The first gallery image doubles as the cover on store cards.
+      media: { where: { uploaded: true, kind: "IMAGE" }, orderBy: { position: "asc" }, take: 1, select: { id: true } },
     },
   });
   const ratings = await ratingSummaries(apps.map((a) => a.id));
-  return apps.map((app) => ({ ...app, rating: ratings.get(app.id) }));
+  return apps.map(({ media, ...app }) => ({ ...app, coverId: media[0]?.id ?? null, rating: ratings.get(app.id) }));
 }
 
 export type ListedProduct = Awaited<ReturnType<typeof findListed>>[number];
